@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, LoaderCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   getConversationMessages,
   listConversations,
   startMessage,
 } from "../api/conversationApi.js";
-import ChatCard from "../components/chatCard.jsx";
+import {
+  ChatHeader,
+  ChatInput,
+  ChatMessages,
+} from "../components/chatCards/index.js";
 import ConversationCard from "../components/conversationCard.jsx";
-import Theme from "../components/theme.jsx";
-import UserMenu from "../components/userMenu.jsx";
 import { useConversation } from "../context/useConversation.js";
 
 async function fetchConversationList() {
@@ -31,7 +32,6 @@ function StartChat() {
 
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [draft, setDraft] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
@@ -40,31 +40,14 @@ function StartChat() {
   const [isSending, setIsSending] = useState(false);
   const [pendingAssistantId, setPendingAssistantId] = useState(null);
   const [error, setError] = useState("");
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const textareaRef = useRef(null);
   const skipHistoryForId = useRef(null);
   const initialPromptHandled = useRef(false);
   const sendPromptRef = useRef(null);
-  const messageEndRef = useRef(null);
   const isLoadingMessages =
     Boolean(routeConversationId) &&
     loadedConversationId !== routeConversationId;
-
-  const adjustTextareaHeight = useCallback(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    // Set to 1px first so scrollHeight reflects full content, not rows attribute
-    textarea.style.height = "1px";
-    const sh = textarea.scrollHeight;
-    setIsExpanded(sh > 48 || (textarea.value || "").includes("\n"));
-    textarea.style.height = `${Math.min(Math.max(sh, 24), 200)}px`;
-    textarea.style.overflowY = sh > 200 ? "auto" : "hidden";
-  }, []);
-
-  useLayoutEffect(() => {
-    adjustTextareaHeight();
-  }, [draft, adjustTextareaHeight]);
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -106,7 +89,11 @@ function StartChat() {
   }, []);
 
   useEffect(() => {
-    if (!routeConversationId) return;
+    if (!routeConversationId) {
+      setMessages([]);
+      setLoadedConversationId(null);
+      return;
+    }
 
     if (skipHistoryForId.current === routeConversationId) {
       skipHistoryForId.current = null;
@@ -144,17 +131,12 @@ function StartChat() {
     if (selectedConversation) selectConversation(selectedConversation);
   }, [routeConversationId, conversations, selectConversation]);
 
-  useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ block: "end" });
-  }, [messages]);
-
-  async function handleNewChat() {
+  function handleNewChat() {
     setError("");
     setMessages([]);
-    setDraft("");
     setLoadedConversationId(null);
     clearConversation();
-    navigate("/chat");
+    navigate("/");
   }
 
   function handleSelectConversation(conversation) {
@@ -168,7 +150,6 @@ function StartChat() {
       const prompt = rawPrompt.trim();
       if (!prompt || isSending) return;
 
-      setDraft("");
       setError("");
       setIsSending(true);
       setIsCreatingConversation(!routeConversationId);
@@ -263,28 +244,11 @@ function StartChat() {
     sendPromptRef.current?.(initialMessage);
   }, [location.key, location.pathname, location.state, navigate]);
 
-  function handleSubmit(event) {
-    event?.preventDefault?.();
-    void sendPrompt(draft);
-  }
-
-  function handleKeyDown(event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      void sendPrompt(draft);
-    }
-  }
-
-  const title =
-    activeConversation?.title ||
-    conversations.find(
-      (conversation) => String(conversation.id) === routeConversationId,
-    )?.title ||
-    "New chat";
-
   return (
     <main className="flex h-svh w-full overflow-hidden bg-white dark:bg-[#212121]">
       <ConversationCard
+        isOpen={isSidebarOpen}
+        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         conversations={conversations}
         activeConversationId={routeConversationId}
         isSearching={isSearching}
@@ -301,104 +265,54 @@ function StartChat() {
       />
 
       <section className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#212121]">
-        {/* Floating top right: Theme & Profile only (no navbar row) */}
-        <div className="absolute top-3 right-4 z-20 flex items-center gap-2">
-          <Theme />
-          <UserMenu />
-        </div>
+        <ChatHeader
+          hasMessages={messages.length > 0}
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        />
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-12 pb-3 sm:px-8">
-          {isLoadingMessages ? (
-            <div className="flex h-full items-center justify-center text-[13px] text-[#888]">
-              <LoaderCircle
-                aria-hidden="true"
-                className="mr-2 h-4 w-4 animate-spin"
+        {messages.length === 0 ? (
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-10">
+            <h1 className="mb-7 text-center text-[28px] font-medium tracking-tight text-[#0d0d0d] sm:text-[34px] dark:text-white">
+              What can I help with ?
+            </h1>
+            <div className="w-full max-w-[680px]">
+              <ChatInput
+                key={routeConversationId || "new"}
+                onSend={sendPrompt}
+                isSending={isSending}
+                error={error}
               />
-              Loading conversation...
             </div>
-          ) : messages.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <h2 className="text-center text-[24px] font-medium text-[#222]">
-                What can I help with?
-              </h2>
-            </div>
-          ) : (
-            <div className="mx-auto flex w-full max-w-[700px] flex-col gap-5">
-              {messages.map((message) => (
-                <ChatCard
-                  key={message.id}
-                  message={message}
-                  isPending={isSending && message.id === pendingAssistantId}
-                />
-              ))}
-              <div ref={messageEndRef} />
-            </div>
-          )}
-        </div>
-
-        <div className="shrink-0 px-4 pb-4 sm:px-8">
-          {error && (
-            <p
-              className="mx-auto mb-2 max-w-[620px] text-[13px] text-red-600"
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-          <form
-            className={`mx-auto w-full max-w-[640px] border border-neutral-200/90 bg-[#f4f4f4] px-4 shadow-sm transition-all duration-150 dark:border-neutral-700/80 dark:bg-[#2f2f2f] ${
-              isExpanded
-                ? "flex flex-col rounded-[24px] pt-3 pb-2.5"
-                : "flex items-center gap-2 rounded-full py-[10px]"
-            }`}
-            onSubmit={handleSubmit}
-          >
-            <label className="sr-only" htmlFor="chat-message">
-              Message
-            </label>
-            <textarea
-              ref={textareaRef}
-              id="chat-message"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={handleKeyDown}
-              className="min-w-0 w-full resize-none overflow-hidden bg-transparent text-[14.5px] leading-relaxed text-[#222] outline-none placeholder:text-neutral-500 dark:text-[#ececec] dark:placeholder:text-neutral-400"
-              placeholder="Message Espresso AI"
-              disabled={isSending}
+          </div>
+        ) : (
+          <>
+            <ChatMessages
+              messages={messages}
+              isLoading={isLoadingMessages}
+              isSending={isSending}
+              pendingAssistantId={pendingAssistantId}
+              onSelectPrompt={sendPrompt}
             />
-            {isExpanded ? (
-              <div className="flex items-center justify-end pt-1.5">
-                <button
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black text-white transition hover:opacity-90 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:opacity-40 dark:bg-white dark:text-black dark:disabled:bg-neutral-600"
-                  type="submit"
-                  aria-label="Send message"
-                  title="Send message"
-                  disabled={!draft.trim() || isSending}
-                >
-                  {isSending ? (
-                    <LoaderCircle aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <ArrowUp aria-hidden="true" className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            ) : (
-              <button
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black text-white transition hover:opacity-90 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:opacity-40 dark:bg-white dark:text-black dark:disabled:bg-neutral-600"
-                type="submit"
-                aria-label="Send message"
-                title="Send message"
-                disabled={!draft.trim() || isSending}
-              >
-                {isSending ? (
-                  <LoaderCircle aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <ArrowUp aria-hidden="true" className="h-4 w-4" />
-                )}
-              </button>
-            )}
-          </form>
-        </div>
+
+            <ChatInput
+              key={routeConversationId || "new"}
+              onSend={sendPrompt}
+              isSending={isSending}
+              error={error}
+            />
+          </>
+        )}
+
+        {/* Floating Help Circle at bottom right (from Figma) */}
+        <button
+          type="button"
+          className="absolute right-4 bottom-4 z-10 grid h-7 w-7 place-items-center rounded-full border border-neutral-300/80 bg-white text-[13px] font-medium text-neutral-600 shadow-2xs transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-[#2a2a2a] dark:text-neutral-300 dark:hover:bg-[#333]"
+          aria-label="Help"
+          title="Help"
+        >
+          ?
+        </button>
       </section>
     </main>
   );

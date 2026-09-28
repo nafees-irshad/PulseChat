@@ -1,7 +1,7 @@
 import {
-  formatHistoryForGemini,
-  streamGeminiReply,
-} from "../service/External/geminiservice.js";
+  getProvider,
+  streamWithFallback,
+} from "../service/External/aiService.js";
 import {
   createConversation,
   saveMessage,
@@ -57,12 +57,18 @@ export async function getConversationMessages(req, res) {
 // POST /api/chat  (SSE streaming endpoint)
 export async function sendMessage(req, res) {
   const userId = req.user.id;
-  const { conversationId, message } = req.body;
+  const { conversationId, message, model } = req.body;
 
   if (!conversationId || !message) {
     return res
       .status(400)
       .json({ error: "conversationId and message are required" });
+  }
+
+  // Pick the AI provider ("gemini" by default, or "groq")
+  const provider = getProvider(model);
+  if (!provider) {
+    return res.status(400).json({ error: `Unsupported model: ${model}` });
   }
 
   try {
@@ -71,7 +77,6 @@ export async function sendMessage(req, res) {
 
     // 2. Fetch conversation history for context
     const dbMessages = await getMessages(conversationId, 20);
-    const geminiHistory = formatHistoryForGemini(dbMessages);
 
     // 3. Set up SSE headers
     res.setHeader("Content-Type", "text/event-stream");
@@ -79,16 +84,19 @@ export async function sendMessage(req, res) {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    // 4. Stream Gemini's reply, forwarding each chunk to the client
-    const fullReply = await streamGeminiReply(geminiHistory, (chunkText) => {
-      res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
-    });
-
+    // 4. Stream the selected model's reply, forwarding each chunk to the client
+    const { text: fullReply, modelUsed } = await streamWithFallback(
+      model,
+      dbMessages,
+      (chunkText) => {
+        res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+      },
+    );
     // 5. Save the complete assistant reply once streaming is done
     await saveMessage(conversationId, userId, "assistant", fullReply);
 
     // 6. Signal completion and close the stream
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    res.write(`data: ${JSON.stringify({ done: true, model: modelUsed })}\n\n`);
     res.end();
   } catch (err) {
     console.error("sendMessage error:", err);

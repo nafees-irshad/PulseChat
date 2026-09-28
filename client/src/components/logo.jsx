@@ -4,9 +4,10 @@ import UserMenu from "./userMenu.jsx";
 
 function Logo({ children }) {
   const location = useLocation();
-  const isChat = location.pathname.startsWith("/chat");
+  const isChatOrHome =
+    location.pathname.startsWith("/chat") || location.pathname === "/";
 
-  if (isChat) {
+  if (isChatOrHome) {
     return (
       <div className="h-svh w-full overflow-hidden bg-white dark:bg-[#212121]">
         {children}
@@ -21,7 +22,7 @@ function Logo({ children }) {
           <Link
             className="flex items-center gap-2 text-[15px] font-semibold text-[#171717] no-underline dark:text-white"
             to="/"
-            aria-label="Espresso AI home"
+            aria-label="Pulse AI home"
           >
             <svg
               aria-hidden="true"

@@ -1,158 +1,174 @@
 import {
+  Images,
   LoaderCircle,
-  MessageSquare,
+  PanelLeft,
   Search,
+  Sparkles,
   SquarePen,
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 function ConversationCard({
-  conversations,
+  isOpen = true,
+  onToggleSidebar,
+  conversations = [],
   activeConversationId,
-  isSearching,
-  searchValue,
-  isLoading,
-  isCreating,
+  isSearching = false,
+  searchValue = "",
+  isLoading = false,
+  isCreating = false,
   onNewChat,
   onToggleSearch,
   onSearchChange,
   onSelectConversation,
 }) {
   const filteredConversations = conversations.filter((conversation) =>
-    (conversation.title || "New Chat")
+    (conversation.title || "New chat")
       .toLowerCase()
       .includes(searchValue.toLowerCase()),
   );
 
   return (
-    <aside className="flex h-full min-h-0 w-[260px] shrink-0 flex-col border-r border-[#e5e5e5] bg-white text-left transition-all duration-200 select-none max-sm:w-[64px] dark:border-[#262626] dark:bg-[#212121]">
-      {/* Top Sidebar Header with Espresso AI Logo */}
-      <div className="flex h-14 shrink-0 items-center justify-between px-3.5 pt-2">
+    <aside
+      className={`relative flex h-full shrink-0 flex-col bg-[#f9f9f9] text-left transition-all duration-300 ease-in-out select-none border-r border-neutral-200/60 dark:border-neutral-800/80 dark:bg-[#171717] ${
+        isOpen
+          ? "w-[260px] opacity-100"
+          : "w-0 opacity-0 overflow-hidden pointer-events-none border-r-0"
+      }`}
+    >
+      {/* Top Header: Logo + Close Sidebar Toggle Button */}
+      <div className="flex h-13 shrink-0 items-center justify-between px-3 pt-2">
         <Link
           to="/"
-          className="flex items-center gap-2.5 text-[15px] font-semibold text-[#171717] no-underline transition hover:opacity-80 max-sm:justify-center dark:text-white"
-          aria-label="Espresso AI home"
+          className="flex items-center gap-2 rounded-lg p-1.5 transition hover:bg-black/5 dark:hover:bg-white/5"
+          aria-label="Home"
+          title="Home"
         >
+          {/* OpenAI spiral logo */}
           <svg
-            aria-hidden="true"
-            className="h-4 w-4 shrink-0 text-[#171717] dark:text-white"
+            className="h-5 w-5 text-[#0d0d0d] dark:text-white"
             viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.8"
+            fill="currentColor"
           >
-            <path d="m15 5 4 4M4 20l4.2-.8L19 8.4a2.1 2.1 0 0 0-3-3L5.2 16.2 4 20Z" />
-            <path d="M13.5 6.5 17.5 10.5" />
+            <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.6668zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813v6.7227zm1.1448-1.9967l3.0537-1.7616 3.0537 1.7616v3.5232l-3.0537 1.7616-3.0537-1.7616z" />
           </svg>
-          <span className="truncate tracking-tight max-sm:hidden">
-            PulseChat
-          </span>
         </Link>
+
+        {/* Close sidebar button */}
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="grid h-8 w-8 place-items-center rounded-lg text-neutral-600 transition hover:bg-black/5 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-white"
+          aria-label="Close sidebar"
+          title="Close sidebar"
+        >
+          <PanelLeft className="h-[18px] w-[18px]" />
+        </button>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex flex-col gap-1 px-2.5 pb-2">
+      {/* Main Action Items: New chat, Search chats, Library */}
+      <div className="flex flex-col gap-0.5 px-2.5 pt-2">
+        {/* New chat */}
         <button
-          className="group flex h-10 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[13.5px] font-medium text-neutral-800 transition-colors duration-150 hover:bg-[#f2f2f2] disabled:opacity-50 max-sm:justify-center max-sm:px-0 dark:text-[#ececec] dark:hover:bg-[#2b2b2b]"
           type="button"
           onClick={onNewChat}
           disabled={isCreating}
-          aria-label="New chat"
-          title="New chat"
+          className="flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-left text-[14px] font-normal text-[#0d0d0d] transition hover:bg-black/5 disabled:opacity-40 dark:text-[#ececec] dark:hover:bg-white/5"
         >
           {isCreating ? (
-            <LoaderCircle
-              aria-hidden="true"
-              className="h-4 w-4 shrink-0 animate-spin text-neutral-500 dark:text-neutral-400"
-            />
+            <LoaderCircle className="h-[18px] w-[18px] animate-spin text-neutral-700 dark:text-neutral-300" />
           ) : (
-            <SquarePen
-              aria-hidden="true"
-              className="h-4 w-4 shrink-0 text-neutral-600 transition-transform duration-150 group-hover:scale-105 dark:text-neutral-300"
-            />
+            <SquarePen className="h-[18px] w-[18px] text-neutral-700 dark:text-neutral-300" />
           )}
-          <span className="truncate max-sm:hidden">
-            {isCreating ? "Starting..." : "New chat"}
-          </span>
+          <span>New chat</span>
         </button>
 
+        {/* Search chats */}
         <button
-          className={`flex h-10 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[13.5px] font-medium transition-colors duration-150 max-sm:justify-center max-sm:px-0 ${
-            isSearching
-              ? "bg-[#f0f0f0] text-neutral-900 dark:bg-[#2b2b2b] dark:text-white"
-              : "text-neutral-600 hover:bg-[#f2f2f2] hover:text-neutral-900 dark:text-[#a3a3a3] dark:hover:bg-[#2b2b2b] dark:hover:text-white"
-          }`}
           type="button"
           onClick={onToggleSearch}
-          aria-label={isSearching ? "Close chat search" : "Search chats"}
-          title="Search chats"
+          className={`flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-left text-[14px] font-normal text-[#0d0d0d] transition hover:bg-black/5 dark:text-[#ececec] dark:hover:bg-white/5 ${
+            isSearching ? "bg-black/5 dark:bg-white/5 font-medium" : ""
+          }`}
         >
-          {isSearching ? (
-            <X
-              aria-hidden="true"
-              className="h-4 w-4 shrink-0 text-neutral-600 dark:text-neutral-300"
-            />
-          ) : (
-            <Search
-              aria-hidden="true"
-              className="h-4 w-4 shrink-0 text-neutral-600 dark:text-neutral-300"
-            />
-          )}
-          <span className="truncate max-sm:hidden">Search chats</span>
+          <Search className="h-[18px] w-[18px] text-neutral-700 dark:text-neutral-300" />
+          <span>Search chats</span>
         </button>
 
+        {/* Inline Search Input */}
         {isSearching && (
-          <div className="relative mt-1 max-sm:hidden">
-            <Search
-              aria-hidden="true"
-              className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400 dark:text-neutral-500"
-            />
+          <div className="relative my-1">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
             <input
-              className="h-9 w-full rounded-xl border border-neutral-300 bg-[#f4f4f4] pl-8.5 pr-3 text-[13px] text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-500 focus:bg-white focus:ring-1 focus:ring-neutral-400 dark:border-neutral-700/80 dark:bg-[#2b2b2b] dark:text-[#ececec] dark:placeholder:text-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-500"
               type="search"
               placeholder="Search chats..."
-              aria-label="Search chats"
               value={searchValue}
-              onChange={(event) => onSearchChange(event.target.value)}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="h-8.5 w-full rounded-lg border border-neutral-300/80 bg-white pl-8 pr-7 text-[13px] text-neutral-900 outline-none transition focus:border-neutral-500 dark:border-neutral-700 dark:bg-[#242424] dark:text-white"
               autoFocus
             />
+            {searchValue && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         )}
+
+        {/* Library (only) */}
+        <button
+          type="button"
+          onClick={onNewChat}
+          className="flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-left text-[14px] font-normal text-[#0d0d0d] transition hover:bg-black/5 dark:text-[#ececec] dark:hover:bg-white/5"
+        >
+          <div className="flex items-center gap-3">
+            <Images className="h-[18px] w-[18px] text-neutral-700 dark:text-neutral-300" />
+            <span>Library</span>
+          </div>
+          <span className="pr-1 text-[13px] font-normal text-neutral-500 dark:text-neutral-400">
+            {conversations.length || 11}
+          </span>
+        </button>
       </div>
 
-      {/* Recents list section */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 max-sm:hidden">
-        <h2 className="px-3 pt-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 select-none dark:text-[#8e8e8e]">
-          {searchValue ? "Search Results" : "Recents"}
-        </h2>
+      {/* "Chats" Section Header */}
+      <div className="px-5 pt-5 pb-1.5">
+        <span className="text-[12px] font-medium text-[#8e8ea0] dark:text-neutral-400">
+          Chats
+        </span>
+      </div>
 
+      {/* Conversations List */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-2">
         {isLoading ? (
-          <div className="space-y-1 px-1 py-1">
-            <div className="h-9 w-full animate-pulse rounded-xl bg-neutral-100 dark:bg-[#2b2b2b]" />
-            <div className="h-9 w-full animate-pulse rounded-xl bg-neutral-100/70 dark:bg-[#2b2b2b]/70" />
-            <div className="h-9 w-3/4 animate-pulse rounded-xl bg-neutral-100/50 dark:bg-[#2b2b2b]/50" />
+          <div className="space-y-1.5 py-1">
+            <div className="h-7 w-full animate-pulse rounded-lg bg-black/5 dark:bg-white/5" />
+            <div className="h-7 w-5/6 animate-pulse rounded-lg bg-black/5 dark:bg-white/5" />
+            <div className="h-7 w-4/6 animate-pulse rounded-lg bg-black/5 dark:bg-white/5" />
           </div>
         ) : filteredConversations.length ? (
           <ul className="space-y-0.5">
             {filteredConversations.map((conversation) => {
               const isActive =
                 String(activeConversationId) === String(conversation.id);
-              const title = conversation.title || "New Chat";
+              const title = conversation.title || "New chat";
 
               return (
                 <li key={conversation.id}>
                   <button
-                    className={`group flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] leading-5 transition-colors duration-150 ${
-                      isActive
-                        ? "bg-[#f0f0f0] font-medium text-neutral-900 shadow-xs dark:bg-[#2b2b2b] dark:text-white"
-                        : "text-neutral-600 hover:bg-[#f5f5f5] hover:text-neutral-900 dark:text-[#b4b4b4] dark:hover:bg-[#282828] dark:hover:text-white"
-                    }`}
                     type="button"
                     onClick={() => onSelectConversation(conversation)}
                     title={title}
+                    className={`flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-[13.5px] leading-snug transition-colors duration-100 ${
+                      isActive
+                        ? "bg-black/[0.08] font-medium text-[#0d0d0d] dark:bg-white/[0.1] dark:text-white"
+                        : "text-[#0d0d0d] hover:bg-black/[0.04] dark:text-[#ececec] dark:hover:bg-white/[0.05]"
+                    }`}
                   >
                     <span className="truncate">{title}</span>
                   </button>
@@ -161,38 +177,32 @@ function ConversationCard({
             })}
           </ul>
         ) : (
-          <div className="px-3 py-6 text-center">
-            <p className="text-[12.5px] text-neutral-400 dark:text-neutral-500">
+          <div className="px-3 py-6 text-left">
+            <p className="text-[13px] text-neutral-400 dark:text-neutral-500">
               {searchValue ? "No matching chats" : "No chats yet"}
             </p>
           </div>
         )}
       </div>
 
-      {/* Mobile-only compact chat list */}
-      <div className="hidden min-h-0 flex-1 overflow-y-auto p-1.5 max-sm:block">
-        <ul className="space-y-1.5">
-          {filteredConversations.map((conversation) => {
-            const isActive =
-              String(activeConversationId) === String(conversation.id);
-            return (
-              <li key={conversation.id}>
-                <button
-                  className={`grid h-10 w-full place-items-center rounded-xl transition ${
-                    isActive
-                      ? "bg-[#f0f0f0] text-neutral-900 dark:bg-[#2b2b2b] dark:text-white"
-                      : "text-neutral-500 hover:bg-[#f5f5f5] dark:text-neutral-400 dark:hover:bg-[#282828]"
-                  }`}
-                  type="button"
-                  onClick={() => onSelectConversation(conversation)}
-                  title={conversation.title || "New Chat"}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      {/* Bottom: Upgrade Plan (as in Figma) */}
+      <div className="mt-auto shrink-0 border-t border-neutral-200/80 p-2.5 dark:border-neutral-800">
+        <button
+          type="button"
+          className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-black/5 dark:hover:bg-white/5"
+        >
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-neutral-200/80 bg-white text-neutral-800 shadow-2xs dark:border-neutral-700 dark:bg-[#222] dark:text-neutral-200">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium text-[#0d0d0d] dark:text-white">
+              Upgrade plan
+            </p>
+            <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">
+              More access to the best models
+            </p>
+          </div>
+        </button>
       </div>
     </aside>
   );

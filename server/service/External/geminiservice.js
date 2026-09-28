@@ -41,3 +41,7 @@ export async function streamGeminiReply(history, onChunk) {
 
   return fullText;
 }
+
+export async function streamReply(messages, onChunk) {
+  return streamGeminiReply(formatHistoryForGemini(messages), onChunk);
+}
