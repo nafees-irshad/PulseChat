@@ -17,7 +17,7 @@ function ChatMessages({
   }, [messages]);
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-12 pb-3 sm:px-8">
+    <div className="chat-scroll min-h-0 flex-1 overflow-y-auto px-4 pt-12 pb-3 sm:px-8">
       {isLoading ? (
         <div className="flex h-full items-center justify-center text-[13px] text-[#888] dark:text-neutral-400">
           <LoaderCircle

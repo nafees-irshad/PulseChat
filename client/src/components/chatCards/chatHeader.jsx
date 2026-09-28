@@ -1,4 +1,4 @@
-import { ChevronDown, Clock, PanelLeft, Share2, Sparkles } from "lucide-react";
+import { Clock, PanelLeft, Share2, Sparkles } from "lucide-react";
 import Theme from "../theme.jsx";
 import UserMenu from "../userMenu.jsx";
 
@@ -24,12 +24,8 @@ function ChatHeader({
           </button>
         )}
 
-        {/* Pulse AI Model Selector (replaces ChatGPT) */}
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[17px] font-semibold text-[#0d0d0d] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
-          aria-label="Model selector"
-        >
+        {/* Pulse AI brand */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-[17px] font-semibold text-[#0d0d0d] dark:text-white">
           {/* Pulse AI Logo Mark */}
           <svg
             aria-hidden="true"
@@ -45,8 +41,7 @@ function ChatHeader({
             <path d="M13.5 6.5 17.5 10.5" />
           </svg>
           <span>Pulse AI</span>
-          <ChevronDown className="h-4 w-4 text-neutral-400 dark:text-neutral-500" />
-        </button>
+        </div>
       </div>
 
       {/* Center: Get Plus */}

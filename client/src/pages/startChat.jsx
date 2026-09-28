@@ -39,6 +39,7 @@ function StartChat() {
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [pendingAssistantId, setPendingAssistantId] = useState(null);
+  const [model, setModel] = useState("groq");
   const [error, setError] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -146,7 +147,7 @@ function StartChat() {
   }
 
   const sendPrompt = useCallback(
-    async (rawPrompt) => {
+    async (rawPrompt, selectedModel = model) => {
       const prompt = rawPrompt.trim();
       if (!prompt || isSending) return;
 
@@ -186,15 +187,20 @@ function StartChat() {
           selectConversation(conversation);
         }
 
-        const reply = await startMessage(conversation.id, prompt, (text) => {
-          setMessages((current) =>
-            current.map((item) =>
-              item.id === assistantMessageId
-                ? { ...item, content: item.content + text }
-                : item,
-            ),
-          );
-        });
+        const reply = await startMessage(
+          conversation.id,
+          prompt,
+          (text) => {
+            setMessages((current) =>
+              current.map((item) =>
+                item.id === assistantMessageId
+                  ? { ...item, content: item.content + text }
+                  : item,
+              ),
+            );
+          },
+          selectedModel,
+        );
 
         setMessages((current) =>
           current.map((item) =>
@@ -223,6 +229,7 @@ function StartChat() {
       activeConversation,
       conversations,
       isSending,
+      model,
       navigate,
       refreshConversations,
       routeConversationId,
@@ -280,6 +287,8 @@ function StartChat() {
               <ChatInput
                 key={routeConversationId || "new"}
                 onSend={sendPrompt}
+                model={model}
+                onModelChange={setModel}
                 isSending={isSending}
                 error={error}
               />
@@ -298,6 +307,8 @@ function StartChat() {
             <ChatInput
               key={routeConversationId || "new"}
               onSend={sendPrompt}
+              model={model}
+              onModelChange={setModel}
               isSending={isSending}
               error={error}
             />

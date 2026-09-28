@@ -1,23 +1,64 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowUp,
   AudioWaveform,
+  Check,
+  ChevronDown,
   LoaderCircle,
   Mic,
   Plus,
   SlidersHorizontal,
 } from "lucide-react";
 
+const models = [
+  { id: "groq", name: "GPT-oss-120b", provider: "Groq" },
+  { id: "gemini", name: "Gemini 3.8 Flash", provider: "Google Gemini" },
+];
+
 function ChatInput({
   onSend,
+  model = "groq",
+  onModelChange,
   isSending = false,
   error = "",
   placeholder = "Ask anything",
   disabled = false,
 }) {
   const [draft, setDraft] = useState("");
+  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const modelMenuRef = useRef(null);
+  const modelButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (!isModelMenuOpen) return undefined;
+
+    const closeOnOutsideClick = (event) => {
+      if (!modelMenuRef.current?.contains(event.target)) {
+        setIsModelMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsModelMenuOpen(false);
+        modelButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isModelMenuOpen]);
 
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current;
@@ -48,6 +89,8 @@ function ChatInput({
   };
 
   const hasDraft = Boolean(draft.trim());
+  const selectedModel =
+    models.find((option) => option.id === model) || models[0];
 
   return (
     <div className="w-full px-4 pb-3 sm:px-6">
@@ -105,14 +148,76 @@ function ChatInput({
               <Plus className="h-[18px] w-[18px]" />
             </button>
 
-            <button
-              type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-neutral-600 transition hover:bg-black/5 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-white"
-              title="Tools"
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span>Tools</span>
-            </button>
+            <div className="relative" ref={modelMenuRef}>
+              <button
+                ref={modelButtonRef}
+                type="button"
+                onClick={() => setIsModelMenuOpen((open) => !open)}
+                aria-label={`Select model, currently ${selectedModel.name}`}
+                aria-expanded={isModelMenuOpen}
+                aria-controls="chat-model-menu"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-neutral-600 transition hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:text-neutral-300 dark:hover:bg-white/10 dark:focus-visible:outline-neutral-500"
+              >
+                <SlidersHorizontal
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5 shrink-0"
+                />
+                <span>
+                  {selectedModel.name} ({selectedModel.provider})
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`h-3.5 w-3.5 text-neutral-400 transition-transform ${isModelMenuOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {isModelMenuOpen && (
+                <div
+                  id="chat-model-menu"
+                  role="group"
+                  aria-label="Choose an AI model"
+                  className="absolute bottom-full left-0 z-30 mb-2 w-64 overflow-hidden rounded-xl border border-neutral-200 bg-white p-1.5 shadow-xl shadow-black/10 dark:border-neutral-700 dark:bg-[#252525] dark:shadow-black/30"
+                >
+                  <p className="px-2.5 pt-1.5 pb-2 text-[11px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-neutral-500">
+                    Choose a model
+                  </p>
+                  {models.map((option) => {
+                    const isSelected = option.id === model;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => {
+                          onModelChange?.(option.id);
+                          setIsModelMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left transition ${
+                          isSelected
+                            ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-700/70 dark:text-white"
+                            : "text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        <span className="flex min-w-0 flex-col">
+                          <span className="text-[13px] font-medium">
+                            {option.name}
+                          </span>
+                          <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                            {option.provider}
+                          </span>
+                        </span>
+                        {isSelected && (
+                          <Check
+                            aria-hidden="true"
+                            className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right controls: Mic and Audio / Send button */}
@@ -156,7 +261,8 @@ function ChatInput({
 
       {/* Footer below chat input box (as requested) */}
       <footer className="mt-2.5 text-center text-[12px] text-neutral-400 select-none dark:text-neutral-500">
-        © {new Date().getFullYear()} Pulse AI. Pulse AI can make mistakes. Check important info.
+        © {new Date().getFullYear()} Pulse AI. Pulse AI can make mistakes. Check
+        important info.
       </footer>
     </div>
   );

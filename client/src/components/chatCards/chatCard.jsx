@@ -1,6 +1,25 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Check, Code, Copy } from "lucide-react";
+
+function remarkBreakTags() {
+  return (tree) => {
+    function replaceBreakTags(node) {
+      if (!Array.isArray(node.children)) return;
+
+      node.children = node.children.flatMap((child) => {
+        if (child.type === "html" && /^<br\s*\/?>$/i.test(child.value.trim())) {
+          return [{ type: "break" }];
+        }
+        replaceBreakTags(child);
+        return [child];
+      });
+    }
+
+    replaceBreakTags(tree);
+  };
+}
 
 function CodeBlock({ children, className }) {
   const [copied, setCopied] = useState(false);
@@ -56,10 +75,7 @@ function ChatCard({ message, isPending = false }) {
 
   if (isUserMessage) {
     return (
-      <article
-        className="flex w-full justify-end"
-        aria-label="Your message"
-      >
+      <article className="flex w-full justify-end" aria-label="Your message">
         <div className="max-w-[min(80%,580px)] whitespace-pre-wrap break-words rounded-[22px] bg-[#e7f3ff] px-4 py-2.5 text-left text-[14.5px] leading-relaxed text-neutral-900 shadow-xs dark:!bg-[#2f2f2f] dark:!text-[#f4f4f4]">
           {content}
         </div>
@@ -79,11 +95,14 @@ function ChatCard({ message, isPending = false }) {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
             </span>
-            <span className="animate-pulse text-[14px] font-medium">Thinking...</span>
+            <span className="animate-pulse text-[14px] font-medium">
+              Thinking...
+            </span>
           </div>
         ) : (
           <div className="prose prose-neutral dark:prose-invert max-w-none">
             <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkBreakTags]}
               components={{
                 h1: ({ ...props }) => (
                   <h1
@@ -128,6 +147,28 @@ function ChatCard({ message, isPending = false }) {
                   />
                 ),
                 li: ({ ...props }) => <li className="pl-1" {...props} />,
+                table: ({ children, ...props }) => (
+                  <div className="my-4 max-w-full overflow-x-auto">
+                    <table
+                      className="w-full border-collapse text-left text-[14px]"
+                      {...props}
+                    >
+                      {children}
+                    </table>
+                  </div>
+                ),
+                th: ({ ...props }) => (
+                  <th
+                    className="border border-neutral-300 bg-neutral-100 px-3 py-2 font-semibold text-neutral-900 dark:!border-neutral-700 dark:!bg-neutral-800 dark:!text-white"
+                    {...props}
+                  />
+                ),
+                td: ({ ...props }) => (
+                  <td
+                    className="border border-neutral-300 px-3 py-2 align-top dark:!border-neutral-700"
+                    {...props}
+                  />
+                ),
                 blockquote: ({ ...props }) => (
                   <blockquote
                     className="my-3 border-l-2 border-neutral-300 py-1 pl-4 italic text-neutral-600 dark:!border-neutral-700 dark:!text-neutral-400"
@@ -152,9 +193,7 @@ function ChatCard({ message, isPending = false }) {
                   const isMultiLine = String(children).includes("\n");
                   if (!inline && (className || isMultiLine)) {
                     return (
-                      <CodeBlock className={className}>
-                        {children}
-                      </CodeBlock>
+                      <CodeBlock className={className}>{children}</CodeBlock>
                     );
                   }
                   return (
@@ -168,7 +207,7 @@ function ChatCard({ message, isPending = false }) {
                 },
               }}
             >
-              {content}
+              {content.replace(/&lt;br\s*\/?&gt;/gi, "<br>")}
             </ReactMarkdown>
             {isPending && (
               <span className="ml-1 inline-block h-4 w-1.5 animate-pulse bg-neutral-400 align-middle dark:!bg-neutral-300" />

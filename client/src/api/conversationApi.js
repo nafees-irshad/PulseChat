@@ -68,14 +68,19 @@ function parseEventStream(responseText, onError) {
 }
 
 // Send a message and read the server-sent event response.
-export async function startMessage(conversationId, message, onText) {
+export async function startMessage(
+  conversationId,
+  message,
+  onText,
+  model = "groq",
+) {
   let pendingText = "";
   let receivedLength = 0;
   let streamError = "";
 
   const response = await api.post(
     API_ENDPOINTS.CONVERSATION.SEND_MESSAGE,
-    { conversationId, message },
+    { conversationId, message, model },
     {
       responseType: "text",
       timeout: 0,
