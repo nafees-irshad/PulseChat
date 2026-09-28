@@ -252,7 +252,13 @@ function StartChat() {
   }, [location.key, location.pathname, location.state, navigate]);
 
   return (
-    <main className="flex h-svh w-full overflow-hidden bg-white dark:bg-[#212121]">
+    <main
+      className={`flex h-svh w-full overflow-hidden bg-white dark:bg-[#212121] md:grid md:p-3 md:bg-[#f5f5f5] md:dark:bg-[#111] ${
+        isSidebarOpen
+          ? "md:grid-cols-[260px_minmax(0,1fr)] md:gap-3"
+          : "md:grid-cols-[0_minmax(0,1fr)] md:gap-0"
+      }`}
+    >
       <ConversationCard
         isOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
@@ -271,7 +277,7 @@ function StartChat() {
         onSelectConversation={handleSelectConversation}
       />
 
-      <section className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#212121]">
+      <section className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#212121] md:overflow-hidden md:rounded-2xl md:border md:border-neutral-200/70 md:shadow-sm dark:md:border-neutral-800">
         <ChatHeader
           hasMessages={messages.length > 0}
           isSidebarOpen={isSidebarOpen}

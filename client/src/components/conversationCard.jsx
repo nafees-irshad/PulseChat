@@ -31,10 +31,10 @@ function ConversationCard({
 
   return (
     <aside
-      className={`relative flex h-full shrink-0 flex-col bg-[#f9f9f9] text-left transition-all duration-300 ease-in-out select-none border-r border-neutral-200/60 dark:border-neutral-800/80 dark:bg-[#171717] ${
+      className={`relative flex h-full shrink-0 flex-col bg-[#f9f9f9] text-left transition-all duration-300 ease-in-out select-none border-r border-neutral-200/60 dark:border-neutral-800/80 dark:bg-[#171717] md:w-full md:rounded-2xl md:border md:shadow-sm ${
         isOpen
-          ? "w-[260px] opacity-100"
-          : "w-0 opacity-0 overflow-hidden pointer-events-none border-r-0"
+          ? "w-[260px] opacity-100 md:w-full"
+          : "w-0 opacity-0 overflow-hidden pointer-events-none border-r-0 md:w-0"
       }`}
     >
       {/* Top Header: Logo + Close Sidebar Toggle Button */}
