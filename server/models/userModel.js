@@ -24,7 +24,7 @@ export default (sequelize, DataTypes) => {
       },
     },
     {
-      tableName: "Users", // match whatever your migration created
+      tableName: "users", // match whatever your migration created
       timestamps: true,
     },
   );
