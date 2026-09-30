@@ -1,7 +1,9 @@
 import * as gemini from "./geminiservice.js"; // match your exact filename
 import * as groq from "./groqService.js";
+import * as glm from "./openRouterService.DotsStudio.js";
+import * as laguna from "./openRouter.Laguna.js";
 
-const providers = { gemini, groq };
+const providers = { gemini, groq, glm, laguna };
 
 export const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "gemini";
 const FIRST_CHUNK_TIMEOUT_MS = 15000; // give up on a model that sends nothing for 15s

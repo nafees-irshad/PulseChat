@@ -25,6 +25,14 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
+      model: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      requestedModel: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       tableName: "messages",
