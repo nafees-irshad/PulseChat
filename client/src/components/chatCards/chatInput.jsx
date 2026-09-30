@@ -10,15 +10,19 @@ import {
   AudioWaveform,
   Check,
   ChevronDown,
+  FileText,
   LoaderCircle,
   Mic,
   Plus,
   SlidersHorizontal,
+  X,
 } from "lucide-react";
 
 const models = [
   { id: "groq", name: "GPT-oss-120b", provider: "Groq" },
   { id: "gemini", name: "Gemini 3.8 Flash", provider: "Google Gemini" },
+  { id: "glm", name: "Dots 3 Note Preview", provider: "OpenRouter" },
+  { id: "laguna", name: "Laguna S 2.1 Free", provider: "OpenRouter" },
 ];
 
 function ChatInput({
@@ -31,6 +35,7 @@ function ChatInput({
   disabled = false,
 }) {
   const [draft, setDraft] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -78,7 +83,8 @@ function ChatInput({
     const trimmed = draft.trim();
     if (!trimmed || isSending || disabled) return;
     setDraft("");
-    onSend?.(trimmed);
+    onSend?.(trimmed, selectedFile);
+    setSelectedFile(null);
   };
 
   const handleKeyDown = (event) => {
@@ -93,7 +99,7 @@ function ChatInput({
     models.find((option) => option.id === model) || models[0];
 
   return (
-    <div className="w-full px-4 pb-3 sm:px-6">
+    <div className="w-full shrink-0 px-4 pb-3 sm:px-6">
       {error && (
         <p
           className="mx-auto mb-2 max-w-[680px] text-center text-[13px] text-red-600 dark:text-red-400"
@@ -111,6 +117,27 @@ function ChatInput({
         <label className="sr-only" htmlFor="chat-prompt-textarea">
           Ask Pulse AI
         </label>
+
+        {selectedFile && (
+          <div className="mb-2 flex max-w-full items-center gap-2 self-start rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] text-neutral-700 dark:border-neutral-700 dark:bg-[#252525] dark:text-neutral-200">
+            <FileText
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 text-neutral-500"
+            />
+            <span className="max-w-[240px] truncate" title={selectedFile.name}>
+              {selectedFile.name}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedFile(null)}
+              className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-black/5 hover:text-neutral-900 dark:hover:bg-white/10 dark:hover:text-white"
+              aria-label={`Remove ${selectedFile.name}`}
+              title="Remove file"
+            >
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Textarea */}
         <textarea
@@ -130,7 +157,11 @@ function ChatInput({
           ref={fileInputRef}
           type="file"
           className="sr-only"
-          multiple
+          accept="application/pdf,.pdf"
+          onChange={(event) => {
+            setSelectedFile(event.target.files?.[0] || null);
+            event.target.value = "";
+          }}
           aria-label="Attach files"
         />
 

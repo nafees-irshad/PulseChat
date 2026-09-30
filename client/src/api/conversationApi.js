@@ -25,6 +25,35 @@ export async function getConversationMessages(id) {
   return response.data;
 }
 
+export async function renameConversation(id, title) {
+  const response = await api.patch(
+    API_ENDPOINTS.CONVERSATION.RENAME_CONVERSATION(id),
+    { title },
+  );
+
+  return response.data;
+}
+
+export async function deleteConversation(id) {
+  await api.delete(API_ENDPOINTS.CONVERSATION.DELETE_CONVERSATION(id));
+}
+
+export async function extractDocument(file, conversationId) {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (conversationId) {
+    formData.append("conversationId", String(conversationId));
+  }
+
+  const response = await api.post(
+    API_ENDPOINTS.CONVERSATION.EXTRACT_DOCUMENT,
+    formData,
+    { timeout: 0, headers: { "Content-Type": "multipart/form-data" } },
+  );
+
+  return response.data;
+}
+
 function processEventBlock(block, onText, onError) {
   const data = block
     .split(/\r?\n/)
@@ -45,6 +74,7 @@ function processEventBlock(block, onText, onError) {
 
 function parseEventStream(responseText, onError) {
   let fullText = "";
+  let modelUsed = null;
   const events = responseText.split(/\r?\n\r?\n/);
 
   for (const block of events) {
@@ -59,12 +89,13 @@ function parseEventStream(responseText, onError) {
       const event = JSON.parse(data);
       if (event.error) onError(event.error);
       if (event.text) fullText += event.text;
+      if (event.done && event.model) modelUsed = event.model;
     } catch {
       onError("The server returned an invalid message event.");
     }
   }
 
-  return fullText;
+  return { text: fullText, model: modelUsed };
 }
 
 // Send a message and read the server-sent event response.
@@ -73,6 +104,7 @@ export async function startMessage(
   message,
   onText,
   model = "groq",
+  documentId,
 ) {
   let pendingText = "";
   let receivedLength = 0;
@@ -80,7 +112,7 @@ export async function startMessage(
 
   const response = await api.post(
     API_ENDPOINTS.CONVERSATION.SEND_MESSAGE,
-    { conversationId, message, model },
+    { conversationId, message, model, ...(documentId ? { documentId } : {}) },
     {
       responseType: "text",
       timeout: 0,
@@ -99,9 +131,9 @@ export async function startMessage(
     },
   );
 
-  const fullText = parseEventStream(response.data, (error) => {
+  const result = parseEventStream(response.data, (error) => {
     streamError = error;
   });
   if (streamError) throw new Error(streamError);
-  return fullText;
+  return result;
 }

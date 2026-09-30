@@ -3,6 +3,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Check, Code, Copy } from "lucide-react";
 
+const modelNames = {
+  groq: "Groq",
+  gemini: "Gemini",
+  glm: "Dots Studio",
+  gemma: "Gemma 4",
+  laguna: "Laguna S 2.1",
+};
+
 function remarkBreakTags() {
   return (tree) => {
     function replaceBreakTags(node) {
@@ -211,6 +219,21 @@ function ChatCard({ message, isPending = false }) {
             </ReactMarkdown>
             {isPending && (
               <span className="ml-1 inline-block h-4 w-1.5 animate-pulse bg-neutral-400 align-middle dark:!bg-neutral-300" />
+            )}
+            {message.model && (
+              <p className="mt-2 text-[12px] leading-5 text-neutral-500 dark:text-neutral-400">
+                {message.requestedModel &&
+                message.requestedModel !== message.model ? (
+                  <>
+                    {modelNames[message.requestedModel] ||
+                      message.requestedModel}{" "}
+                    unavailable — answered by{" "}
+                    {modelNames[message.model] || message.model} instead
+                  </>
+                ) : (
+                  <>Answered by {modelNames[message.model] || message.model}</>
+                )}
+              </p>
             )}
           </div>
         )}

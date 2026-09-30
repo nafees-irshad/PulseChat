@@ -1,13 +1,19 @@
 import {
+  Check,
+  Ellipsis,
   Images,
   LoaderCircle,
+  Pencil,
   PanelLeft,
   Search,
+  Share2,
   Sparkles,
   SquarePen,
+  Trash2,
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 function ConversationCard({
   isOpen = true,
@@ -22,12 +28,77 @@ function ConversationCard({
   onToggleSearch,
   onSearchChange,
   onSelectConversation,
+  onRenameConversation,
+  onDeleteConversation,
 }) {
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [renameTitle, setRenameTitle] = useState("");
+  const [renameError, setRenameError] = useState("");
+  const [isSavingRename, setIsSavingRename] = useState(false);
+
+  useEffect(() => {
+    if (openMenuId === null && !renameTarget) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!event.target.closest("[data-conversation-menu]")) {
+        setOpenMenuId(null);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpenMenuId(null);
+        setRenameTarget(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openMenuId, renameTarget]);
+
   const filteredConversations = conversations.filter((conversation) =>
     (conversation.title || "New chat")
       .toLowerCase()
       .includes(searchValue.toLowerCase()),
   );
+
+  async function handleRenameSubmit(event) {
+    event.preventDefault();
+    const title = renameTitle.trim();
+    if (!title || !renameTarget) return;
+
+    setIsSavingRename(true);
+    setRenameError("");
+    try {
+      await onRenameConversation?.(renameTarget, title);
+      setRenameTarget(null);
+    } catch (error) {
+      setRenameError(error.message || "Could not rename this chat.");
+    } finally {
+      setIsSavingRename(false);
+    }
+  }
+
+  async function handleDelete(conversation) {
+    setOpenMenuId(null);
+    if (
+      !window.confirm(
+        `Delete "${conversation.title || "New chat"}"? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await onDeleteConversation?.(conversation);
+    } catch {
+      // The chat page reports request errors in its existing alert area.
+    }
+  }
 
   return (
     <aside
@@ -158,20 +229,89 @@ function ConversationCard({
                 String(activeConversationId) === String(conversation.id);
               const title = conversation.title || "New chat";
 
+              const isMenuOpen = openMenuId === conversation.id;
+
               return (
-                <li key={conversation.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelectConversation(conversation)}
-                    title={title}
-                    className={`flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-[13.5px] leading-snug transition-colors duration-100 ${
-                      isActive
-                        ? "bg-black/[0.08] font-medium text-[#0d0d0d] dark:bg-white/[0.1] dark:text-white"
-                        : "text-[#0d0d0d] hover:bg-black/[0.04] dark:text-[#ececec] dark:hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    <span className="truncate">{title}</span>
-                  </button>
+                <li
+                  key={conversation.id}
+                  className={`group relative rounded-lg ${
+                    isActive
+                      ? "bg-black/[0.08] dark:bg-white/[0.1]"
+                      : "hover:bg-black/[0.04] dark:hover:bg-white/[0.05]"
+                  }`}
+                  data-conversation-menu
+                >
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => onSelectConversation(conversation)}
+                      title={title}
+                      className={`min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-[13.5px] leading-snug transition-colors duration-100 ${
+                        isActive
+                          ? "font-medium text-[#0d0d0d] dark:text-white"
+                          : "text-[#0d0d0d] dark:text-[#ececec]"
+                      }`}
+                    >
+                      <span className="block truncate">{title}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenMenuId((current) =>
+                          current === conversation.id ? null : conversation.id,
+                        )
+                      }
+                      aria-label={`Actions for ${title}`}
+                      aria-haspopup="true"
+                      aria-expanded={isMenuOpen}
+                      className={`mr-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-neutral-500 transition hover:bg-black/10 hover:text-neutral-900 focus-visible:opacity-100 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-white ${
+                        isMenuOpen
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                      }`}
+                    >
+                      <Ellipsis aria-hidden="true" className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {isMenuOpen && (
+                    <div
+                      role="group"
+                      aria-label={`Actions for ${title}`}
+                      className="absolute top-8 right-1 z-40 w-48 overflow-hidden rounded-xl border border-neutral-200 bg-white p-1.5 shadow-xl shadow-black/10 dark:border-neutral-700 dark:bg-[#303030] dark:shadow-black/30"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setOpenMenuId(null)}
+                        className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[13px] text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-white/10"
+                      >
+                        <Share2 aria-hidden="true" className="h-4 w-4" />
+                        Share
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRenameTarget(conversation);
+                          setRenameTitle(title);
+                          setRenameError("");
+                          setOpenMenuId(null);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[13px] text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-white/10"
+                      >
+                        <Pencil aria-hidden="true" className="h-4 w-4" />
+                        Rename
+                      </button>
+                      <div className="my-1 border-t border-neutral-200 dark:border-neutral-700" />
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(conversation)}
+                        className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[13px] text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                      >
+                        <Trash2 aria-hidden="true" className="h-4 w-4" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -204,6 +344,71 @@ function ConversationCard({
           </div>
         </button>
       </div>
+      {renameTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isSavingRename) {
+              setRenameTarget(null);
+            }
+          }}
+        >
+          <form
+            onSubmit={handleRenameSubmit}
+            aria-labelledby="rename-chat-title"
+            className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-5 shadow-2xl dark:border-neutral-700 dark:bg-[#252525]"
+          >
+            <h2
+              id="rename-chat-title"
+              className="mb-4 text-lg font-semibold text-neutral-900 dark:text-white"
+            >
+              Rename chat
+            </h2>
+            <label
+              htmlFor="rename-chat-input"
+              className="mb-1.5 block text-[13px] font-medium text-neutral-700 dark:text-neutral-300"
+            >
+              Chat name
+            </label>
+            <input
+              id="rename-chat-input"
+              autoFocus
+              maxLength={255}
+              value={renameTitle}
+              onChange={(event) => setRenameTitle(event.target.value)}
+              className="h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-600 dark:bg-[#1b1b1b] dark:text-white"
+            />
+            {renameError && (
+              <p className="mt-2 text-[12px] text-red-600" role="alert">
+                {renameError}
+              </p>
+            )}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={isSavingRename}
+                onClick={() => setRenameTarget(null)}
+                className="h-9 rounded-lg px-3 text-[13px] font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:opacity-50 dark:text-neutral-300 dark:hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!renameTitle.trim() || isSavingRename}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-neutral-900 px-3 text-[13px] font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+              >
+                {isSavingRename ? (
+                  <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </aside>
   );
 }

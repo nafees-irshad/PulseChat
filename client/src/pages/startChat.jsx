@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
+  deleteConversation as deleteConversationRequest,
+  extractDocument,
   getConversationMessages,
   listConversations,
+  renameConversation as renameConversationRequest,
   startMessage,
 } from "../api/conversationApi.js";
 import {
@@ -146,8 +149,54 @@ function StartChat() {
     navigate(`/chat/${conversation.id}`);
   }
 
+  async function handleRenameConversation(conversation, title) {
+    setError("");
+    try {
+      const updatedConversation = await renameConversationRequest(
+        conversation.id,
+        title,
+      );
+      setConversations((current) => [
+        updatedConversation,
+        ...current.filter(
+          (item) => String(item.id) !== String(updatedConversation.id),
+        ),
+      ]);
+      if (String(activeConversation?.id) === String(updatedConversation.id)) {
+        selectConversation({ ...activeConversation, ...updatedConversation });
+      }
+    } catch (requestError) {
+      const message =
+        requestError.response?.data?.error || "Could not rename this chat.";
+      setError(message);
+      throw new Error(message, { cause: requestError });
+    }
+  }
+
+  async function handleDeleteConversation(conversation) {
+    setError("");
+    try {
+      await deleteConversationRequest(conversation.id);
+      setConversations((current) =>
+        current.filter((item) => String(item.id) !== String(conversation.id)),
+      );
+
+      if (String(routeConversationId) === String(conversation.id)) {
+        setMessages([]);
+        setLoadedConversationId(null);
+        clearConversation();
+        navigate("/", { replace: true });
+      }
+    } catch (requestError) {
+      const message =
+        requestError.response?.data?.error || "Could not delete this chat.";
+      setError(message);
+      throw new Error(message, { cause: requestError });
+    }
+  }
+
   const sendPrompt = useCallback(
-    async (rawPrompt, selectedModel = model) => {
+    async (rawPrompt, attachedFile = null) => {
       const prompt = rawPrompt.trim();
       if (!prompt || isSending) return;
 
@@ -187,7 +236,21 @@ function StartChat() {
           selectConversation(conversation);
         }
 
-        const reply = await startMessage(
+        let documentId;
+        if (attachedFile?.size > 0) {
+          const extractedDocument = await extractDocument(
+            attachedFile,
+            conversation.id,
+          );
+          documentId = extractedDocument.documentId;
+          if (!documentId) {
+            throw new Error(
+              "The document service did not return a document ID.",
+            );
+          }
+        }
+
+        const { text: reply, model: respondingModel } = await startMessage(
           conversation.id,
           prompt,
           (text) => {
@@ -199,13 +262,19 @@ function StartChat() {
               ),
             );
           },
-          selectedModel,
+          model,
+          documentId,
         );
 
         setMessages((current) =>
           current.map((item) =>
             item.id === assistantMessageId
-              ? { ...item, content: reply || item.content }
+              ? {
+                  ...item,
+                  content: reply || item.content,
+                  model: respondingModel || model,
+                  requestedModel: model,
+                }
               : item,
           ),
         );
@@ -253,7 +322,7 @@ function StartChat() {
 
   return (
     <main
-      className={`flex h-svh w-full overflow-hidden bg-white dark:bg-[#212121] md:grid md:p-3 md:bg-[#f5f5f5] md:dark:bg-[#111] ${
+      className={`flex h-svh w-full overflow-hidden bg-white dark:bg-[#212121] md:grid md:grid-rows-[minmax(0,1fr)] md:p-3 md:bg-[#f5f5f5] md:dark:bg-[#111] ${
         isSidebarOpen
           ? "md:grid-cols-[260px_minmax(0,1fr)] md:gap-3"
           : "md:grid-cols-[0_minmax(0,1fr)] md:gap-0"
@@ -275,10 +344,20 @@ function StartChat() {
         }}
         onSearchChange={setSearchValue}
         onSelectConversation={handleSelectConversation}
+        onRenameConversation={handleRenameConversation}
+        onDeleteConversation={handleDeleteConversation}
       />
 
-      <section className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#212121] md:overflow-hidden md:rounded-2xl md:border md:border-neutral-200/70 md:shadow-sm dark:md:border-neutral-800">
+      <section className="workspace-panel relative flex h-full min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#212121] md:overflow-hidden md:rounded-2xl md:border md:border-neutral-200/70 md:shadow-sm dark:md:border-neutral-800">
         <ChatHeader
+          title={
+            activeConversation?.title ||
+            conversations.find(
+              (conversation) =>
+                String(conversation.id) === String(routeConversationId),
+            )?.title ||
+            "New chat"
+          }
           hasMessages={messages.length > 0}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}

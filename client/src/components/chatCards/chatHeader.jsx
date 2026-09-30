@@ -3,6 +3,7 @@ import Theme from "../theme.jsx";
 import UserMenu from "../userMenu.jsx";
 
 function ChatHeader({
+  title = "New chat",
   hasMessages = false,
   onShare,
   isSidebarOpen = true,
@@ -10,7 +11,7 @@ function ChatHeader({
 }) {
   return (
     <header className="flex h-13 shrink-0 items-center justify-between px-4 pt-1 select-none">
-      {/* Left: Open sidebar (if collapsed) + Pulse AI logo selector */}
+      {/* Left: Open sidebar (if collapsed) + conversation title */}
       <div className="flex items-center gap-2">
         {!isSidebarOpen && (
           <button
@@ -24,24 +25,12 @@ function ChatHeader({
           </button>
         )}
 
-        {/* Pulse AI brand */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-[17px] font-semibold text-[#0d0d0d] dark:text-white">
-          {/* Pulse AI Logo Mark */}
-          <svg
-            aria-hidden="true"
-            className="h-4 w-4 shrink-0 text-[#0d0d0d] dark:text-white"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-          >
-            <path d="m15 5 4 4M4 20l4.2-.8L19 8.4a2.1 2.1 0 0 0-3-3L5.2 16.2 4 20Z" />
-            <path d="M13.5 6.5 17.5 10.5" />
-          </svg>
-          <span>Pulse AI</span>
-        </div>
+        <h1
+          className="m-0 max-w-[min(48vw,560px)] truncate px-2.5 py-1.5 text-[16px] leading-tight font-semibold tracking-normal text-[#0d0d0d] dark:text-white"
+          title={title}
+        >
+          {title}
+        </h1>
       </div>
 
       {/* Center: Get Plus */}

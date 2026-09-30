@@ -197,3 +197,7 @@ textarea {
 :root[data-theme="dark"] #root .bg-black.text-white {
   color: #171717 !important;
 }
+
+:root[data-theme="dark"] #root .workspace-panel {
+  background-color: #000 !important;
+}
