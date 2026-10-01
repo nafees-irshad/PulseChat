@@ -21,6 +21,7 @@ const MODEL_NAMES = {
   glm: "Dots_Studio",
   gemma: "Gemma 4",
   laguna: "Laguna S 2.1",
+  inclusionAI: "inclusionAI",
 };
 import { withDocumentContext } from "../service/External/pdfService.js";
 
@@ -149,7 +150,7 @@ export async function sendMessage(req, res) {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    // 5. Stream the reply (Gemini or Groq, with fallback)
+    // 5. Stream the reply from the selected provider, with fallback
     const { text: fullReply, modelUsed } = await streamWithFallback(
       requestedModel,
       contextMessages,

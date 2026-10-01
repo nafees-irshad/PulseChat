@@ -321,34 +321,46 @@ function StartChat() {
   }, [location.key, location.pathname, location.state, navigate]);
 
   return (
-    <main
-      className={`flex h-svh w-full overflow-hidden bg-white dark:bg-[#212121] md:grid md:grid-rows-[minmax(0,1fr)] md:p-3 md:bg-[#f5f5f5] md:dark:bg-[#111] ${
-        isSidebarOpen
-          ? "md:grid-cols-[260px_minmax(0,1fr)] md:gap-3"
-          : "md:grid-cols-[0_minmax(0,1fr)] md:gap-0"
-      }`}
-    >
-      <ConversationCard
-        isOpen={isSidebarOpen}
-        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
-        conversations={conversations}
-        activeConversationId={routeConversationId}
-        isSearching={isSearching}
-        searchValue={searchValue}
-        isLoading={isLoadingConversations}
-        isCreating={isCreatingConversation}
-        onNewChat={handleNewChat}
-        onToggleSearch={() => {
-          setIsSearching((current) => !current);
-          setSearchValue("");
-        }}
-        onSearchChange={setSearchValue}
-        onSelectConversation={handleSelectConversation}
-        onRenameConversation={handleRenameConversation}
-        onDeleteConversation={handleDeleteConversation}
-      />
+    <main className="relative flex h-svh w-full overflow-hidden bg-white dark:bg-[#212121]">
 
-      <section className="workspace-panel relative flex h-full min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#212121] md:overflow-hidden md:rounded-2xl md:border md:border-neutral-200/70 md:shadow-sm dark:md:border-neutral-800">
+      {/* Overlay backdrop — closes sidebar on mobile when tapped */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/20 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar — absolutely positioned, floats over the chat */}
+      <div
+        className={`absolute inset-y-0 left-0 z-30 p-3 pr-0 transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <ConversationCard
+          isOpen={isSidebarOpen}
+          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+          conversations={conversations}
+          activeConversationId={routeConversationId}
+          isSearching={isSearching}
+          searchValue={searchValue}
+          isLoading={isLoadingConversations}
+          isCreating={isCreatingConversation}
+          onNewChat={handleNewChat}
+          onToggleSearch={() => {
+            setIsSearching((current) => !current);
+            setSearchValue("");
+          }}
+          onSearchChange={setSearchValue}
+          onSelectConversation={handleSelectConversation}
+          onRenameConversation={handleRenameConversation}
+          onDeleteConversation={handleDeleteConversation}
+        />
+      </div>
+
+      {/* Chat — always full screen */}
+      <section className="workspace-panel relative flex h-full w-full min-h-0 flex-col bg-white dark:bg-[#212121] overflow-hidden">
         <ChatHeader
           title={
             activeConversation?.title ||
@@ -400,7 +412,7 @@ function StartChat() {
           </>
         )}
 
-        {/* Floating Help Circle at bottom right (from Figma) */}
+        {/* Floating Help Circle at bottom right */}
         <button
           type="button"
           className="absolute right-4 bottom-4 z-10 grid h-7 w-7 place-items-center rounded-full border border-neutral-300/80 bg-white text-[13px] font-medium text-neutral-600 shadow-2xs transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-[#2a2a2a] dark:text-neutral-300 dark:hover:bg-[#333]"

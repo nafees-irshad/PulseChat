@@ -9,6 +9,7 @@ const modelNames = {
   glm: "Dots Studio",
   gemma: "Gemma 4",
   laguna: "Laguna S 2.1",
+  inclusionAI: "inclusionAI",
 };
 
 function remarkBreakTags() {

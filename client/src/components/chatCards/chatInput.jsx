@@ -20,9 +20,9 @@ import {
 
 const models = [
   { id: "groq", name: "GPT-oss-120b", provider: "Groq" },
-  { id: "gemini", name: "Gemini 3.8 Flash", provider: "Google Gemini" },
   { id: "glm", name: "Dots 3 Note Preview", provider: "OpenRouter" },
   { id: "laguna", name: "Laguna S 2.1 Free", provider: "OpenRouter" },
+  { id: "inclusionAI", name: "inclusionAI", provider: "OpenRouter" },
 ];
 
 function ChatInput({

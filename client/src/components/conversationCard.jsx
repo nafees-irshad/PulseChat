@@ -7,13 +7,13 @@ import {
   PanelLeft,
   Search,
   Share2,
-  Sparkles,
   SquarePen,
   Trash2,
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import UserMenu from "./userMenu.jsx";
 
 function ConversationCard({
   isOpen = true,
@@ -102,10 +102,10 @@ function ConversationCard({
 
   return (
     <aside
-      className={`relative flex h-full shrink-0 flex-col bg-[#f9f9f9] text-left transition-all duration-300 ease-in-out select-none border-r border-neutral-200/60 dark:border-neutral-800/80 dark:bg-[#171717] md:w-full md:rounded-2xl md:border md:shadow-sm ${
+      className={`relative flex h-full w-[260px] shrink-0 flex-col bg-[#f9f9f9] text-left transition-all duration-300 ease-in-out select-none dark:bg-[#171717] rounded-2xl border border-neutral-200/60 shadow-xl dark:border-neutral-800/80 ${
         isOpen
-          ? "w-[260px] opacity-100 md:w-full"
-          : "w-0 opacity-0 overflow-hidden pointer-events-none border-r-0 md:w-0"
+          ? "opacity-100"
+          : "opacity-0 pointer-events-none"
       }`}
     >
       {/* Top Header: Logo + Close Sidebar Toggle Button */}
@@ -325,24 +325,9 @@ function ConversationCard({
         )}
       </div>
 
-      {/* Bottom: Upgrade Plan (as in Figma) */}
+      {/* Bottom: Profile */}
       <div className="mt-auto shrink-0 border-t border-neutral-200/80 p-2.5 dark:border-neutral-800">
-        <button
-          type="button"
-          className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-black/5 dark:hover:bg-white/5"
-        >
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-neutral-200/80 bg-white text-neutral-800 shadow-2xs dark:border-neutral-700 dark:bg-[#222] dark:text-neutral-200">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-medium text-[#0d0d0d] dark:text-white">
-              Upgrade plan
-            </p>
-            <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">
-              More access to the best models
-            </p>
-          </div>
-        </button>
+        <UserMenu variant="sidebar" />
       </div>
       {renameTarget && (
         <div
