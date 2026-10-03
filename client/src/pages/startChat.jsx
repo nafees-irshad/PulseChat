@@ -321,8 +321,7 @@ function StartChat() {
   }, [location.key, location.pathname, location.state, navigate]);
 
   return (
-    <main className="relative flex h-svh w-full overflow-hidden bg-white dark:bg-[#212121]">
-
+    <main className="relative flex h-svh w-full overflow-hidden bg-[#f4f4f4] dark:bg-[#000000]">
       {/* Overlay backdrop — closes sidebar on mobile when tapped */}
       {isSidebarOpen && (
         <div
@@ -334,33 +333,37 @@ function StartChat() {
 
       {/* Sidebar — absolutely positioned, floats over the chat */}
       <div
-        className={`absolute inset-y-0 left-0 z-30 p-3 pr-0 transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`absolute inset-y-0 left-0 z-30 h-full overflow-visible transition-all duration-300 ease-in-out md:static ${
+          isSidebarOpen
+            ? "w-[260px] translate-x-0 md:w-[260px] md:translate-x-0"
+            : "w-0 -translate-x-full"
         }`}
       >
-        <ConversationCard
-          isOpen={isSidebarOpen}
-          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
-          conversations={conversations}
-          activeConversationId={routeConversationId}
-          isSearching={isSearching}
-          searchValue={searchValue}
-          isLoading={isLoadingConversations}
-          isCreating={isCreatingConversation}
-          onNewChat={handleNewChat}
-          onToggleSearch={() => {
-            setIsSearching((current) => !current);
-            setSearchValue("");
-          }}
-          onSearchChange={setSearchValue}
-          onSelectConversation={handleSelectConversation}
-          onRenameConversation={handleRenameConversation}
-          onDeleteConversation={handleDeleteConversation}
-        />
+        <div className="h-full w-[260px] shrink-0 overflow-visible">
+          <ConversationCard
+            isOpen={isSidebarOpen}
+            onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+            conversations={conversations}
+            activeConversationId={routeConversationId}
+            isSearching={isSearching}
+            searchValue={searchValue}
+            isLoading={isLoadingConversations}
+            isCreating={isCreatingConversation}
+            onNewChat={handleNewChat}
+            onToggleSearch={() => {
+              setIsSearching((current) => !current);
+              setSearchValue("");
+            }}
+            onSearchChange={setSearchValue}
+            onSelectConversation={handleSelectConversation}
+            onRenameConversation={handleRenameConversation}
+            onDeleteConversation={handleDeleteConversation}
+          />
+        </div>
       </div>
 
-      {/* Chat — always full screen */}
-      <section className="workspace-panel relative flex h-full w-full min-h-0 flex-col bg-white dark:bg-[#212121] overflow-hidden">
+      {/* Chat surface floats beside the flat conversation list. */}
+      <section className="relative m-2 ml-0 flex h-[calc(100%-1rem)] min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-neutral-200/80 bg-[#e9e9e9] shadow-[0_2px_12px_rgba(0,0,0,0.05)] dark:border-neutral-800 dark:bg-[#212121]">
         <ChatHeader
           title={
             activeConversation?.title ||
@@ -380,7 +383,7 @@ function StartChat() {
             <h1 className="mb-7 text-center text-[28px] font-medium tracking-tight text-[#0d0d0d] sm:text-[34px] dark:text-white">
               What can I help with ?
             </h1>
-            <div className="w-full max-w-[680px]">
+            <div className="w-full max-w-[900px]">
               <ChatInput
                 key={routeConversationId || "new"}
                 onSend={sendPrompt}

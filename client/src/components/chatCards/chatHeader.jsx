@@ -1,6 +1,5 @@
 import { Clock, PanelLeft, Share2, Sparkles } from "lucide-react";
 import Theme from "../theme.jsx";
-import UserMenu from "../userMenu.jsx";
 
 function ChatHeader({
   title = "New chat",
@@ -44,7 +43,7 @@ function ChatHeader({
         </button>
       </div>
 
-      {/* Right: Temporary chat + Share + Theme + Profile */}
+      {/* Right: Temporary chat + Share + Theme */}
       <div className="flex items-center gap-2">
         {hasMessages && (
           <button
@@ -69,7 +68,6 @@ function ChatHeader({
         </button>
 
         <Theme />
-        <UserMenu />
       </div>
     </header>
   );

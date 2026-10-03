@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { ChevronRight, LogOut, Settings, UserRound } from "lucide-react";
+import {
+  Archive,
+  Headset,
+  LogOut,
+  Settings,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getProfile } from "../api/profileApi.js";
 import { useAuth } from "../context/useAuth.js";
@@ -98,53 +105,58 @@ function UserMenu({ variant = "icon" }) {
 
       {isMenuOpen && (
         <div
-          className={`absolute z-50 w-[280px] overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white p-2 text-left shadow-[0_12px_36px_rgba(0,0,0,0.16)] dark:border-[#2b2d33] dark:bg-[#191a1f] ${
-            variant === "sidebar"
-              ? "bottom-full left-0 mb-2"
-              : "right-0 top-11"
+          className={`absolute z-50 w-[280px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white p-1.5 text-left shadow-[0_12px_36px_rgba(0,0,0,0.16)] dark:border-[#2b2d33] dark:bg-[#191a1f] ${
+            variant === "sidebar" ? "bottom-full left-0 mb-2" : "right-0 top-11"
           }`}
         >
-          <div className="flex items-center gap-3 px-3 py-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#303030] text-[13px] font-medium text-white dark:bg-neutral-700">
-              {initials}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[14px] font-medium text-[#171717] dark:text-white">
-                {isLoadingProfile
-                  ? "Loading profile..."
-                  : profile?.name || "Your account"}
-              </p>
-              <p className="truncate text-[12px] text-[#777] dark:text-[#aaa]">
-                {profile?.email || "Free plan"}
-              </p>
-            </div>
-          </div>
-          <div className="my-1 border-t border-[#ededed] dark:border-[#2b2d33]" />
           <Link
-            className="flex h-10 items-center justify-between rounded-lg px-3 text-[13px] text-[#333] no-underline hover:bg-[#f5f5f5] dark:text-[#ddd] dark:hover:bg-[#24262c]"
+            className="flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-[#777] no-underline hover:bg-[#f5f5f5] dark:text-[#aaa] dark:hover:bg-[#24262c]"
             to="/profile"
             onClick={() => setIsMenuOpen(false)}
           >
-            <span className="flex items-center gap-2.5">
-              <UserRound aria-hidden="true" className="h-4 w-4" />
-              Profile
+            <UserRound aria-hidden="true" className="h-4 w-4 shrink-0" />
+            <span className="truncate">
+              {isLoadingProfile
+                ? "Loading profile..."
+                : profile?.email || profile?.name || "Your account"}
             </span>
-            <ChevronRight
-              aria-hidden="true"
-              className="h-4 w-4 text-[#888] dark:text-[#aaa]"
-            />
           </Link>
+          <div className="my-1 border-t border-[#ededed] dark:border-[#2b2d33]" />
+          <button
+            className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#333] dark:text-[#ddd]"
+            type="button"
+            disabled
+          >
+            <Sparkles aria-hidden="true" className="h-4 w-4" />
+            Upgrade Plan
+          </button>
           <Link
-            className="flex h-10 items-center gap-2.5 rounded-lg px-3 text-[13px] text-[#333] no-underline hover:bg-[#f5f5f5] dark:text-[#ddd] dark:hover:bg-[#24262c]"
+            className="flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-[14px] text-[#333] no-underline hover:bg-[#f5f5f5] dark:text-[#ddd] dark:hover:bg-[#24262c]"
             to="/profile#settings"
             onClick={() => setIsMenuOpen(false)}
           >
             <Settings aria-hidden="true" className="h-4 w-4" />
             Settings
           </Link>
+          <button
+            className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#333] dark:text-[#ddd]"
+            type="button"
+            disabled
+          >
+            <Archive aria-hidden="true" className="h-4 w-4" />
+            Archived Chats
+          </button>
+          <button
+            className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#333] dark:text-[#ddd]"
+            type="button"
+            disabled
+          >
+            <Headset aria-hidden="true" className="h-4 w-4" />
+            Customer Service Center
+          </button>
           <div className="my-1 border-t border-[#ededed] dark:border-[#2b2d33]" />
           <button
-            className="flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-left text-[13px] text-[#333] transition hover:bg-[#f5f5f5] dark:text-[#ddd] dark:hover:bg-[#24262c]"
+            className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#333] transition hover:bg-[#f5f5f5] dark:text-[#ddd] dark:hover:bg-[#24262c]"
             type="button"
             onClick={handleLogout}
           >

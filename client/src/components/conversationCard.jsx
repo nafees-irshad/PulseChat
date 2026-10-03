@@ -102,10 +102,8 @@ function ConversationCard({
 
   return (
     <aside
-      className={`relative flex h-full w-[260px] shrink-0 flex-col bg-[#f9f9f9] text-left transition-all duration-300 ease-in-out select-none dark:bg-[#171717] rounded-2xl border border-neutral-200/60 shadow-xl dark:border-neutral-800/80 ${
-        isOpen
-          ? "opacity-100"
-          : "opacity-0 pointer-events-none"
+      className={`relative flex h-full w-[260px] shrink-0 flex-col bg-transparent text-left transition-all duration-300 ease-in-out select-none ${
+        isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
       {/* Top Header: Logo + Close Sidebar Toggle Button */}
@@ -246,7 +244,7 @@ function ConversationCard({
                       type="button"
                       onClick={() => onSelectConversation(conversation)}
                       title={title}
-                      className={`min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-[13.5px] leading-snug transition-colors duration-100 ${
+                      className={`min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-[14px] leading-snug transition-colors duration-100 ${
                         isActive
                           ? "font-medium text-[#0d0d0d] dark:text-white"
                           : "text-[#0d0d0d] dark:text-[#ececec]"

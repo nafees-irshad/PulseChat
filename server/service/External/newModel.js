@@ -23,7 +23,7 @@ export async function streamReply(messages, onChunk) {
       fullText += text;
       onChunk(text);
     }
-  }
+  } 
 
   return fullText;
 }
