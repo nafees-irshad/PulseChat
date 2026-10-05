@@ -44,7 +44,11 @@ function StartChat() {
   const [pendingAssistantId, setPendingAssistantId] = useState(null);
   const [model, setModel] = useState("groq");
   const [error, setError] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    () =>
+      typeof window === "undefined" ||
+      window.matchMedia("(min-width: 768px)").matches,
+  );
 
   const skipHistoryForId = useRef(null);
   const initialPromptHandled = useRef(false);
@@ -137,6 +141,9 @@ function StartChat() {
 
   function handleNewChat() {
     setError("");
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setIsSidebarOpen(false);
+    }
     setMessages([]);
     setLoadedConversationId(null);
     clearConversation();
@@ -146,6 +153,9 @@ function StartChat() {
   function handleSelectConversation(conversation) {
     selectConversation(conversation);
     setError("");
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setIsSidebarOpen(false);
+    }
     navigate(`/chat/${conversation.id}`);
   }
 
@@ -321,7 +331,7 @@ function StartChat() {
   }, [location.key, location.pathname, location.state, navigate]);
 
   return (
-    <main className="relative flex h-svh w-full overflow-hidden bg-[#f4f4f4] dark:bg-[#000000]">
+    <main className="relative flex h-svh w-full overflow-hidden bg-[#f1f1f2] dark:bg-[#101012]">
       {/* Overlay backdrop — closes sidebar on mobile when tapped */}
       {isSidebarOpen && (
         <div
@@ -331,15 +341,15 @@ function StartChat() {
         />
       )}
 
-      {/* Sidebar — absolutely positioned, floats over the chat */}
+      {/* The sidebar overlays the chat on mobile and sits beside it on desktop. */}
       <div
         className={`absolute inset-y-0 left-0 z-30 h-full overflow-visible transition-all duration-300 ease-in-out md:static ${
           isSidebarOpen
-            ? "w-[260px] translate-x-0 md:w-[260px] md:translate-x-0"
-            : "w-0 -translate-x-full"
+            ? "w-[min(320px,85vw)] translate-x-0 md:w-[260px]"
+            : "w-0"
         }`}
       >
-        <div className="h-full w-[260px] shrink-0 overflow-visible">
+        <div className="h-full w-[min(320px,85vw)] shrink-0 overflow-visible md:w-[260px]">
           <ConversationCard
             isOpen={isSidebarOpen}
             onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
@@ -362,8 +372,12 @@ function StartChat() {
         </div>
       </div>
 
-      {/* Chat surface floats beside the flat conversation list. */}
-      <section className="relative m-2 ml-0 flex h-[calc(100%-1rem)] min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-neutral-200/80 bg-[#e9e9e9] shadow-[0_2px_12px_rgba(0,0,0,0.05)] dark:border-neutral-800 dark:bg-[#212121]">
+      {/* Conversation fills the remaining space without a framed panel. */}
+      <section
+        className={`relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white dark:bg-[#212121] ${
+          isSidebarOpen ? "z-0" : "z-40"
+        }`}
+      >
         <ChatHeader
           title={
             activeConversation?.title ||
@@ -373,9 +387,8 @@ function StartChat() {
             )?.title ||
             "New chat"
           }
-          hasMessages={messages.length > 0}
           isSidebarOpen={isSidebarOpen}
-          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+          onToggleSidebar={() => setIsSidebarOpen(true)}
         />
 
         {messages.length === 0 ? (

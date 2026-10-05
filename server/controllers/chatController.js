@@ -20,7 +20,6 @@ const MODEL_NAMES = {
   groq: "GPT-oss",
   glm: "Dots_Studio",
   gemma: "Gemma 4",
-  laguna: "Laguna S 2.1",
   inclusionAI: "inclusionAI",
 };
 import { withDocumentContext } from "../service/External/pdfService.js";

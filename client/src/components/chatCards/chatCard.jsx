@@ -1,14 +1,16 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import { Check, Code, Copy } from "lucide-react";
+import "katex/dist/katex.min.css";
 
 const modelNames = {
   groq: "Groq",
   gemini: "Gemini",
   glm: "Dots Studio",
   gemma: "Gemma 4",
-  laguna: "Laguna S 2.1",
   inclusionAI: "inclusionAI",
 };
 
@@ -28,6 +30,58 @@ function remarkBreakTags() {
 
     replaceBreakTags(tree);
   };
+}
+
+function remarkTerminateMathComments() {
+  return (tree) => {
+    function terminateComments(node) {
+      if (!Array.isArray(node.children)) return;
+
+      for (const child of node.children) {
+        if (child.type === "math" || child.type === "inlineMath") {
+          const lastLineStart = child.value.lastIndexOf("\n") + 1;
+          const lastLine = child.value.slice(lastLineStart);
+          let hasUnterminatedComment = false;
+
+          for (
+            let commentIndex = lastLine.indexOf("%");
+            commentIndex !== -1;
+            commentIndex = lastLine.indexOf("%", commentIndex + 1)
+          ) {
+            let backslashCount = 0;
+            for (
+              let index = commentIndex - 1;
+              index >= 0 && lastLine[index] === "\\";
+              index -= 1
+            ) {
+              backslashCount += 1;
+            }
+
+            if (backslashCount % 2 === 0) {
+              hasUnterminatedComment = true;
+              break;
+            }
+          }
+
+          if (hasUnterminatedComment) child.value += "\n";
+        }
+
+        terminateComments(child);
+      }
+    }
+
+    terminateComments(tree);
+  };
+}
+
+function normalizeMathDelimiters(text) {
+  return text
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, formula) => `$$${formula}$$`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, formula) => `$${formula}$`)
+    .replace(
+      /\[\s*((?=[^\]]*\\(?:text|frac|sqrt|sum|prod|int|times|cdot|mathrm|mathbf)\b)[^\]]+?)\s*\]/g,
+      (_, formula) => `$$${formula}$$`,
+    );
 }
 
 function CodeBlock({ children, className }) {
@@ -111,7 +165,13 @@ function ChatCard({ message, isPending = false }) {
         ) : (
           <div className="prose prose-neutral dark:prose-invert max-w-none">
             <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkBreakTags]}
+              remarkPlugins={[
+                remarkGfm,
+                remarkMath,
+                remarkTerminateMathComments,
+                remarkBreakTags,
+              ]}
+              rehypePlugins={[rehypeKatex]}
               components={{
                 h1: ({ ...props }) => (
                   <h1
@@ -216,7 +276,9 @@ function ChatCard({ message, isPending = false }) {
                 },
               }}
             >
-              {content.replace(/&lt;br\s*\/?&gt;/gi, "<br>")}
+              {normalizeMathDelimiters(
+                content.replace(/&lt;br\s*\/?&gt;/gi, "<br>"),
+              )}
             </ReactMarkdown>
             {isPending && (
               <span className="ml-1 inline-block h-4 w-1.5 animate-pulse bg-neutral-400 align-middle dark:!bg-neutral-300" />

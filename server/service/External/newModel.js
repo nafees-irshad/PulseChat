@@ -3,8 +3,10 @@ import OpenAI from "openai";
 const client = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.OPEN_ROUTER_KEY,
+  timeout: 120,
+  max_retries: 2,
 });
-
+  
 const MODEL = "inclusionai/ling-3.0-flash-sante:free";
 
 export async function streamReply(messages, onChunk) {
@@ -23,7 +25,7 @@ export async function streamReply(messages, onChunk) {
       fullText += text;
       onChunk(text);
     }
-  } 
+  }
 
   return fullText;
 }

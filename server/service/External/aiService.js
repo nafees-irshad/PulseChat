@@ -1,9 +1,8 @@
 import * as groq from "./groqService.js";
 import * as glm from "./openRouterService.DotsStudio.js";
-import * as laguna from "./openRouter.Laguna.js";
 import * as inclusionAI from "./newModel.js";
 
-const providers = { groq, glm, laguna, inclusionAI };
+const providers = { groq, glm, inclusionAI };
 
 export const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "groq";
 const FIRST_CHUNK_TIMEOUT_MS = 15000; // give up on a model that sends nothing for 15s

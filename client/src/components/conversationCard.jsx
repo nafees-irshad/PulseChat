@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import UserMenu from "./userMenu.jsx";
 
 function ConversationCard({
   isOpen = true,
@@ -102,7 +101,7 @@ function ConversationCard({
 
   return (
     <aside
-      className={`relative flex h-full w-[260px] shrink-0 flex-col bg-transparent text-left transition-all duration-300 ease-in-out select-none ${
+      className={`relative flex h-full w-[min(320px,85vw)] shrink-0 flex-col bg-[#f9f9f9] text-left shadow-xl transition-all duration-300 ease-in-out select-none md:w-[260px] md:shadow-none dark:bg-[#000] ${
         isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
@@ -213,7 +212,7 @@ function ConversationCard({
       </div>
 
       {/* Conversations List */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-2">
+      <div className="conversation-list-scroll min-h-0 flex-1 overflow-y-auto px-2.5 pb-2">
         {isLoading ? (
           <div className="space-y-1.5 py-1">
             <div className="h-7 w-full animate-pulse rounded-lg bg-black/5 dark:bg-white/5" />
@@ -232,7 +231,7 @@ function ConversationCard({
               return (
                 <li
                   key={conversation.id}
-                  className={`group relative rounded-lg ${
+                  className={`group relative rounded-lg transition-colors ${
                     isActive
                       ? "bg-black/[0.08] dark:bg-white/[0.1]"
                       : "hover:bg-black/[0.04] dark:hover:bg-white/[0.05]"
@@ -244,7 +243,7 @@ function ConversationCard({
                       type="button"
                       onClick={() => onSelectConversation(conversation)}
                       title={title}
-                      className={`min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-[14px] leading-snug transition-colors duration-100 ${
+                      className={`min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-[13px] leading-snug transition-colors duration-100 ${
                         isActive
                           ? "font-medium text-[#0d0d0d] dark:text-white"
                           : "text-[#0d0d0d] dark:text-[#ececec]"
@@ -323,10 +322,6 @@ function ConversationCard({
         )}
       </div>
 
-      {/* Bottom: Profile */}
-      <div className="mt-auto shrink-0 border-t border-neutral-200/80 p-2.5 dark:border-neutral-800">
-        <UserMenu variant="sidebar" />
-      </div>
       {renameTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]"

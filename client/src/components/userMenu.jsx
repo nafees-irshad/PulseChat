@@ -6,6 +6,7 @@ import {
   Settings,
   Sparkles,
   UserRound,
+  Zap,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getProfile } from "../api/profileApi.js";
@@ -50,18 +51,19 @@ function UserMenu({ variant = "icon" }) {
 
   if (!isAuthenticated) {
     return (
-      <nav className="flex items-center gap-2" aria-label="Account">
+      <nav className="flex items-center gap-2.5" aria-label="Account">
         <Link
-          className="rounded-full bg-black px-4 py-1.5 text-[12px] font-medium text-white no-underline transition hover:bg-[#292929] dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#e9f3ff] px-3 py-1.5 text-[13px] font-semibold text-[#1d4ed8] no-underline transition hover:bg-[#dfeeff]"
+          to="/login"
+        >
+          <Zap aria-hidden="true" className="h-3.5 w-3.5" />
+          Upgrade
+        </Link>
+        <Link
+          className="rounded-full bg-black px-3 py-1.5 text-[13px] font-medium text-white no-underline transition hover:bg-[#292929] dark:bg-white dark:text-black dark:hover:bg-neutral-200"
           to="/login"
         >
           Log in
-        </Link>
-        <Link
-          className="rounded-full border border-[#e5e5e5] px-4 py-1.5 text-[12px] font-medium text-[#171717] no-underline transition hover:bg-[#f7f7f7] dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-          to="/signup"
-        >
-          Sign up
         </Link>
       </nav>
     );
@@ -91,16 +93,24 @@ function UserMenu({ variant = "icon" }) {
           </div>
         </button>
       ) : (
-        /* Small icon button for chat header */
-        <button
-          className="grid h-9 w-9 place-items-center rounded-full bg-[#f0f0f0] text-[#333] transition hover:bg-[#e6e6e6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#999] dark:bg-[#2a2a2a] dark:text-[#ececec] dark:hover:bg-[#333]"
-          type="button"
-          aria-label="Open profile menu"
-          aria-expanded={isMenuOpen}
-          onClick={toggleMenu}
-        >
-          <UserRound aria-hidden="true" className="h-[18px] w-[18px]" />
-        </button>
+        <div className="flex items-center gap-2.5">
+          <Link
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#e9f3ff] px-3 py-1.5 text-[13px] font-semibold text-[#1d4ed8] no-underline transition hover:bg-[#dfeeff]"
+            to="/profile#settings"
+          >
+            <Zap aria-hidden="true" className="h-3.5 w-3.5" />
+            Upgrade
+          </Link>
+          <button
+            className="grid h-9 w-9 place-items-center rounded-full bg-[#f0f0f0] text-[#333] transition hover:bg-[#e6e6e6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#999] dark:bg-[#2a2a2a] dark:text-[#ececec] dark:hover:bg-[#333]"
+            type="button"
+            aria-label="Open profile menu"
+            aria-expanded={isMenuOpen}
+            onClick={toggleMenu}
+          >
+            <UserRound aria-hidden="true" className="h-[18px] w-[18px]" />
+          </button>
+        </div>
       )}
 
       {isMenuOpen && (

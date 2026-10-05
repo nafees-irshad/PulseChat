@@ -17,11 +17,10 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
-
+ 
 const models = [
   { id: "groq", name: "GPT-oss-120b", provider: "Groq" },
   { id: "glm", name: "Dots 3 Note Preview", provider: "OpenRouter" },
-  { id: "laguna", name: "Laguna S 2.1 Free", provider: "OpenRouter" },
   { id: "inclusionAI", name: "inclusionAI", provider: "OpenRouter" },
 ];
 
