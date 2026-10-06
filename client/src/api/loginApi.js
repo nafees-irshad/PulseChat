@@ -6,3 +6,9 @@ export async function login(data) {
 
   return response.data;
 }
+
+export async function loginWithGoogle(accessToken) {
+  const response = await api.post(API_ENDPOINTS.USERS.GOOGLE, { accessToken });
+
+  return response.data;
+}

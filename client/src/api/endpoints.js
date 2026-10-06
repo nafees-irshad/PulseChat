@@ -2,6 +2,7 @@ const API_ENDPOINTS = {
   USERS: {
     REGISTER: "/user/register",
     LOGIN: "/user/login",
+    GOOGLE: "/user/google",
     PROFILE: "/user/profile",
   },
   CONVERSATION: {

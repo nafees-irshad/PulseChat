@@ -3,7 +3,9 @@ function SignupCard({
   error,
   success,
   isSubmitting,
+  isGoogleSubmitting,
   onChange,
+  onGoogleSignup,
   onSubmit,
 }) {
   return (
@@ -94,8 +96,10 @@ function SignupCard({
 
       <div className="space-y-2.5">
         <button
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e5e5e5] bg-white px-4 text-[14px] text-[#171717] transition hover:bg-[#fafafa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a78bfa]"
+          className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e5e5e5] bg-white px-4 text-[14px] text-[#171717] transition hover:bg-[#fafafa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a78bfa] disabled:cursor-wait disabled:opacity-60"
           type="button"
+          onClick={onGoogleSignup}
+          disabled={isSubmitting || isGoogleSubmitting}
         >
           <svg
             aria-hidden="true"
@@ -123,7 +127,7 @@ function SignupCard({
               transform="translate(0 -5)"
             />
           </svg>
-          <span>Sign up with Google</span>
+          <span>{isGoogleSubmitting ? "Signing up..." : "Sign up with Google"}</span>
         </button>
 
         <button

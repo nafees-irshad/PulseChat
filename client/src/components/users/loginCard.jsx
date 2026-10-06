@@ -5,7 +5,9 @@ function LoginCard({
   password,
   error,
   isSubmitting,
+  isGoogleSubmitting,
   onChange,
+  onGoogleLogin,
   onSubmit,
 }) {
   return (
@@ -74,8 +76,10 @@ function LoginCard({
 
       <div className="space-y-2.5">
         <button
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e5e5e5] bg-white px-4 text-[14px] text-[#171717] transition hover:bg-[#fafafa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a78bfa]"
+          className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e5e5e5] bg-white px-4 text-[14px] text-[#171717] transition hover:bg-[#fafafa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a78bfa] disabled:cursor-wait disabled:opacity-60"
           type="button"
+          onClick={onGoogleLogin}
+          disabled={isSubmitting || isGoogleSubmitting}
         >
           <svg
             aria-hidden="true"
@@ -103,7 +107,7 @@ function LoginCard({
               transform="translate(0 -5)"
             />
           </svg>
-          <span>Log in with Google</span>
+          <span>{isGoogleSubmitting ? "Logging in..." : "Log in with Google"}</span>
         </button>
 
         <button

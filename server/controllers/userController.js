@@ -2,6 +2,7 @@ import db from "../models/index.js";
 const { User } = db;
 import JWT from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { randomBytes } from "node:crypto";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -84,6 +85,64 @@ export const login = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json("Login error");
+  }
+};
+
+export const loginWithGoogle = async (req, res) => {
+  const accessToken = req.body?.accessToken;
+  if (typeof accessToken !== "string" || !accessToken) {
+    return res.status(400).json({ message: "A Google access token is required." });
+  }
+
+  let googleProfile;
+  try {
+    const response = await fetch(
+      "https://openidconnect.googleapis.com/v1/userinfo",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    if (!response.ok) {
+      return res.status(401).json({ message: "Google sign-in could not be verified." });
+    }
+    googleProfile = await response.json();
+  } catch (error) {
+    console.error("Google userinfo request failed:", error);
+    return res.status(502).json({ message: "Google sign-in is temporarily unavailable." });
+  }
+
+  if (
+    !googleProfile ||
+    typeof googleProfile.email !== "string" ||
+    googleProfile.email_verified !== true
+  ) {
+    return res.status(401).json({ message: "A verified Google email is required." });
+  }
+
+  try {
+    let user = await User.findOne({ where: { email: googleProfile.email } });
+    if (!user) {
+      const password = await bcrypt.hash(randomBytes(32).toString("hex"), 10);
+      user = await User.create({
+        name: googleProfile.name || googleProfile.email.split("@")[0],
+        email: googleProfile.email,
+        password,
+      });
+    }
+
+    const token = JWT.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "5d" },
+    );
+    return res.status(200).json({
+      status: "success",
+      message: "Login successful",
+      token,
+    });
+  } catch (error) {
+    console.error("Google login failed:", error);
+    return res.status(500).json({ message: "Unable to complete Google sign-in." });
   }
 };
 

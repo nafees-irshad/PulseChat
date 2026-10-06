@@ -6,7 +6,7 @@ const client = new OpenAI({
   timeout: 120,
   max_retries: 2,
 });
-  
+
 const MODEL = "inclusionai/ling-3.0-flash-sante:free";
 
 export async function streamReply(messages, onChunk) {
