@@ -1,20 +1,20 @@
-'use strict';
+"use strict";
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-import Sequelize from 'sequelize';
-import process from 'process';
+import path from "path";
+import { fileURLToPath, pathToFileURL } from "url";
+import Sequelize from "sequelize";
+import process from "process";
+import { createRequire } from "module";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
+const env = process.env.NODE_ENV || "development";
 
 // config.json is plain JSON, safe to import directly
-const configFile = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '../config/config.json'), 'utf-8')
-);
+const require = createRequire(import.meta.url);
+
+const configFile = require("../config/config.cjs");
 const config = configFile[env];
 
 const db = {};
@@ -23,22 +23,27 @@ let sequelize;
 if (config.use_env_variable) {
   sequelize = new Sequelize(process.env[config.use_env_variable], config);
 } else {
-  sequelize = new Sequelize(config.database, config.username, config.password, config);
+  sequelize = new Sequelize(
+    config.database,
+    config.username,
+    config.password,
+    config,
+  );
 }
 
-const modelFiles = fs
-  .readdirSync(__dirname)
-  .filter((file) => {
-    return (
-      file.indexOf('.') !== 0 &&
-      file !== basename &&
-      file.slice(-3) === '.js' &&
-      file.indexOf('.test.js') === -1
-    );
-  });
+const modelFiles = fs.readdirSync(__dirname).filter((file) => {
+  return (
+    file.indexOf(".") !== 0 &&
+    file !== basename &&
+    file.slice(-3) === ".js" &&
+    file.indexOf(".test.js") === -1
+  );
+});
 
 for (const file of modelFiles) {
-  const modelModule = await import(pathToFileURL(path.join(__dirname, file)).href);
+  const modelModule = await import(
+    pathToFileURL(path.join(__dirname, file)).href
+  );
   const model = modelModule.default(sequelize, Sequelize.DataTypes);
   db[model.name] = model;
 }
