@@ -11,6 +11,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://pulsechatai.netlify.app",
   "https://pulsechat-ai.online",
+  "https://staging--pulsechatai.netlify.app"
 ];
 
 app.use(
