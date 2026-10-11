@@ -38,7 +38,7 @@ export async function deleteConversation(id) {
   await api.delete(API_ENDPOINTS.CONVERSATION.DELETE_CONVERSATION(id));
 }
 
-export async function extractDocument(file, conversationId) {
+export async function extractDocument(file, conversationId, onUploadProgress) {
   const formData = new FormData();
   formData.append("file", file);
   if (conversationId) {
@@ -48,7 +48,16 @@ export async function extractDocument(file, conversationId) {
   const response = await api.post(
     API_ENDPOINTS.CONVERSATION.EXTRACT_DOCUMENT,
     formData,
-    { timeout: 0, headers: { "Content-Type": "multipart/form-data" } },
+    {
+      timeout: 0,
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (progress) => {
+        if (!progress.total) return;
+        onUploadProgress?.(
+          Math.min(100, Math.round((progress.loaded / progress.total) * 100)),
+        );
+      },
+    },
   );
 
   return response.data;

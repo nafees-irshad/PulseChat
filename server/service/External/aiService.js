@@ -1,8 +1,9 @@
 import * as groq from "./groqService.js";
 import * as glm from "./openRouterService.DotsStudio.js";
-import * as inclusionAI from "./newModel.js";
+import * as apodex from "./apodex-1.1-mini.js";
+import * as nemotron from "./nemotron-3-super-120b-a12b.js";
 
-const providers = { groq, glm, inclusionAI };
+const providers = { groq, glm, apodex, nemotron };
 
 export const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "groq";
 const FIRST_CHUNK_TIMEOUT_MS = 15000; // give up on a model that sends nothing for 15s
@@ -12,7 +13,7 @@ export function getProvider(name = DEFAULT_MODEL) {
 }
 
 // Tries the preferred model first, then the others in order.
-// Returns { text, modelUsed }.
+// Returns { text, modelUsed } and provider-specific response metadata when available.
 export async function streamWithFallback(
   preferred = DEFAULT_MODEL,
   messages,
@@ -34,7 +35,7 @@ export async function streamWithFallback(
       timer = setTimeout(() => {
         abandoned = true;
         reject(new Error(`${name} timed out`));
-      }, FIRST_CHUNK_TIMEOUT_MS);
+      }, providers[name].firstChunkTimeoutMs || FIRST_CHUNK_TIMEOUT_MS);
     });
 
     const run = providers[name].streamReply(messages, (chunk) => {
@@ -46,8 +47,11 @@ export async function streamWithFallback(
     run.catch((e) => console.error(`${name} underlying error:`, e.message)); // avoids an unhandled rejection if the timeout wins
 
     try {
-      const text = await Promise.race([run, timeout]);
-      return { text, modelUsed: name };
+      const result = await Promise.race([run, timeout]);
+      return {
+        ...(typeof result === "string" ? { text: result } : result),
+        modelUsed: name,
+      };
     } catch (err) {
       console.error(`${name} failed:`, err.message);
       lastError = err;

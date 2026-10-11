@@ -5,12 +5,13 @@ export default (sequelize, DataTypes) => {
     "Conversation",
     {
       id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
-        autoIncrement: true,
+        allowNull: false,
       },
       userId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
       },
       title: {

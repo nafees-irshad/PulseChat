@@ -1,27 +1,95 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Archive,
+  Check,
+  ChevronRight,
   Headset,
   LogOut,
   Settings,
   Sparkles,
   UserRound,
-  Zap,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getProfile } from "../api/profileApi.js";
 import { useAuth } from "../context/useAuth.js";
 
-function UserMenu({ variant = "icon" }) {
+const THEME_STORAGE_KEY = "pulse-theme";
+
+function getStoredTheme() {
+  if (typeof window === "undefined") return "system";
+  const stored =
+    window.localStorage.getItem(THEME_STORAGE_KEY) ||
+    window.localStorage.getItem("espresso-theme");
+  if (stored === "light" || stored === "dark" || stored === "system") {
+    return stored;
+  }
+  return "system";
+}
+
+function applyTheme(selectedTheme) {
+  let effectiveTheme = selectedTheme;
+  if (selectedTheme === "system") {
+    effectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  }
+  document.documentElement.dataset.theme = effectiveTheme;
+  window.localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
+}
+
+function UserMenu({ variant = "sidebar" }) {
   const navigate = useNavigate();
   const { isAuthenticated, clearToken } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isThemeSubmenuOpen, setIsThemeSubmenuOpen] = useState(false);
+  const [theme, setTheme] = useState(getStoredTheme);
   const [profile, setProfile] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const menuContainerRef = useRef(null);
+
+  // Close menu on click outside or Escape
+  useEffect(() => {
+    if (!isMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (
+        menuContainerRef.current &&
+        !menuContainerRef.current.contains(event.target)
+      ) {
+        setIsMenuOpen(false);
+        setIsThemeSubmenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+        setIsThemeSubmenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  // Sync theme changes
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  function handleThemeChange(newTheme) {
+    setTheme(newTheme);
+    setIsThemeSubmenuOpen(false);
+    setIsMenuOpen(false);
+  }
 
   async function toggleMenu() {
     const shouldOpen = !isMenuOpen;
     setIsMenuOpen(shouldOpen);
+    setIsThemeSubmenuOpen(false);
     if (!shouldOpen || profile || isLoadingProfile || !isAuthenticated) return;
 
     setIsLoadingProfile(true);
@@ -38,6 +106,7 @@ function UserMenu({ variant = "icon" }) {
     clearToken();
     setProfile(null);
     setIsMenuOpen(false);
+    setIsThemeSubmenuOpen(false);
     navigate("/login");
   }
 
@@ -51,127 +120,154 @@ function UserMenu({ variant = "icon" }) {
 
   if (!isAuthenticated) {
     return (
-      <nav className="flex items-center gap-2.5" aria-label="Account">
+      <div className="relative" ref={menuContainerRef}>
         <Link
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#e9f3ff] px-3 py-1.5 text-[13px] font-semibold text-[#1d4ed8] no-underline transition hover:bg-[#dfeeff]"
           to="/login"
+          className="flex w-full items-center gap-3 rounded-xl p-2 px-2.5 text-left transition hover:bg-black/5 dark:hover:bg-white/5"
         >
-          <Zap aria-hidden="true" className="h-3.5 w-3.5" />
-          Upgrade
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-neutral-800 text-[13.5px] font-semibold text-white dark:bg-neutral-700">
+            <UserRound className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[14.5px] font-semibold text-[#0d0d0d] dark:text-white">
+              Sign in
+            </p>
+            <p className="truncate text-[12.5px] text-neutral-500 dark:text-neutral-400">
+              Free
+            </p>
+          </div>
         </Link>
-        <Link
-          className="rounded-full bg-black px-3 py-1.5 text-[13px] font-medium text-white no-underline transition hover:bg-[#292929] dark:bg-white dark:text-black dark:hover:bg-neutral-200"
-          to="/login"
-        >
-          Log in
-        </Link>
-      </nav>
+      </div>
     );
   }
 
   return (
-    <div className="relative">
-      {variant === "sidebar" ? (
-        /* Full-width profile row for sidebar footer */
-        <button
-          type="button"
-          aria-label="Open profile menu"
-          aria-expanded={isMenuOpen}
-          onClick={toggleMenu}
-          className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-black/5 dark:hover:bg-white/5"
-        >
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#303030] text-[12px] font-semibold text-white dark:bg-neutral-700">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-medium text-[#0d0d0d] dark:text-white">
-              {isLoadingProfile ? "Loading…" : profile?.name || "My Account"}
-            </p>
-            <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">
-              {profile?.email || "Free plan"}
-            </p>
-          </div>
-        </button>
-      ) : (
-        <div className="flex items-center gap-2.5">
-          <Link
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#e9f3ff] px-3 py-1.5 text-[13px] font-semibold text-[#1d4ed8] no-underline transition hover:bg-[#dfeeff]"
-            to="/profile#settings"
-          >
-            <Zap aria-hidden="true" className="h-3.5 w-3.5" />
-            Upgrade
-          </Link>
-          <button
-            className="grid h-9 w-9 place-items-center rounded-full bg-[#f0f0f0] text-[#333] transition hover:bg-[#e6e6e6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#999] dark:bg-[#2a2a2a] dark:text-[#ececec] dark:hover:bg-[#333]"
-            type="button"
-            aria-label="Open profile menu"
-            aria-expanded={isMenuOpen}
-            onClick={toggleMenu}
-          >
-            <UserRound aria-hidden="true" className="h-[18px] w-[18px]" />
-          </button>
+    <div className="relative" ref={menuContainerRef}>
+      {/* Profile button at the bottom of the sidebar */}
+      <button
+        type="button"
+        aria-label="Open profile menu"
+        aria-expanded={isMenuOpen}
+        onClick={toggleMenu}
+        className="flex w-full items-center gap-3 rounded-xl p-2 px-2.5 text-left transition hover:bg-black/5 dark:hover:bg-white/5"
+      >
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-neutral-900 text-[13.5px] font-semibold text-white shadow-xs dark:bg-neutral-700">
+          {initials}
         </div>
-      )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14.5px] font-semibold leading-tight text-[#0d0d0d] dark:text-white">
+            {isLoadingProfile ? "Loading…" : profile?.name || "User"}
+          </p>
+          <p className="truncate text-[12.5px] text-neutral-500 dark:text-neutral-400">
+            Free
+          </p>
+        </div>
+      </button>
 
+      {/* Floating Profile Popup Menu (opens upward) */}
       {isMenuOpen && (
-        <div
-          className={`absolute z-50 w-[280px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white p-1.5 text-left shadow-[0_12px_36px_rgba(0,0,0,0.16)] dark:border-[#2b2d33] dark:bg-[#191a1f] ${
-            variant === "sidebar" ? "bottom-full left-0 mb-2" : "right-0 top-11"
-          }`}
-        >
+        <div className="absolute bottom-full left-0 z-50 mb-2 w-64 overflow-visible rounded-2xl border border-neutral-200 bg-white p-1.5 text-left shadow-[0_12px_36px_rgba(0,0,0,0.18)] dark:border-neutral-750 dark:bg-[#212121] dark:shadow-black/60">
+          {/* User Profile / Email Header */}
           <Link
-            className="flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-[#777] no-underline hover:bg-[#f5f5f5] dark:text-[#aaa] dark:hover:bg-[#24262c]"
+            className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] text-neutral-800 no-underline transition hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-white/5"
             to="/profile"
             onClick={() => setIsMenuOpen(false)}
           >
-            <UserRound aria-hidden="true" className="h-4 w-4 shrink-0" />
-            <span className="truncate">
+            <UserRound aria-hidden="true" className="h-4 w-4 shrink-0 text-neutral-500" />
+            <span className="truncate font-medium">
               {isLoadingProfile
                 ? "Loading profile..."
                 : profile?.email || profile?.name || "Your account"}
             </span>
           </Link>
-          <div className="my-1 border-t border-[#ededed] dark:border-[#2b2d33]" />
-          <button
-            className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#333] dark:text-[#ddd]"
-            type="button"
-            disabled
+
+          <div className="my-1 border-t border-neutral-200 dark:border-neutral-700/70" />
+
+          {/* Personalize option with Theme flyout submenu (matches Image 2) */}
+          <div
+            className="relative"
+            onMouseEnter={() => setIsThemeSubmenuOpen(true)}
+            onMouseLeave={() => setIsThemeSubmenuOpen(false)}
           >
-            <Sparkles aria-hidden="true" className="h-4 w-4" />
-            Upgrade Plan
-          </button>
+            <button
+              type="button"
+              onClick={() => setIsThemeSubmenuOpen((open) => !open)}
+              className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-[13.5px] text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-white/5"
+            >
+              <div className="flex items-center gap-2.5">
+                <Sparkles aria-hidden="true" className="h-4 w-4 text-neutral-500" />
+                <span>Personalize</span>
+              </div>
+              <ChevronRight aria-hidden="true" className="h-4 w-4 text-neutral-400" />
+            </button>
+
+            {/* Theme flyout menu */}
+            {isThemeSubmenuOpen && (
+              <div className="absolute bottom-0 left-full ml-2 w-36 overflow-hidden rounded-xl border border-neutral-200 bg-white p-1 shadow-2xl dark:border-neutral-700 dark:bg-[#212121] dark:shadow-black/70">
+                <button
+                  type="button"
+                  onClick={() => handleThemeChange("system")}
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-white/5"
+                >
+                  <span>System</span>
+                  {theme === "system" && (
+                    <Check aria-hidden="true" className="h-3.5 w-3.5 text-emerald-500" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleThemeChange("light")}
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-white/5"
+                >
+                  <span>Light</span>
+                  {theme === "light" && (
+                    <Check aria-hidden="true" className="h-3.5 w-3.5 text-emerald-500" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleThemeChange("dark")}
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-white/5"
+                >
+                  <span>Dark</span>
+                  {theme === "dark" && (
+                    <Check aria-hidden="true" className="h-3.5 w-3.5 text-emerald-500" />
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Settings */}
           <Link
-            className="flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-[14px] text-[#333] no-underline hover:bg-[#f5f5f5] dark:text-[#ddd] dark:hover:bg-[#24262c]"
+            className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] text-neutral-800 no-underline transition hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-white/5"
             to="/profile#settings"
             onClick={() => setIsMenuOpen(false)}
           >
-            <Settings aria-hidden="true" className="h-4 w-4" />
-            Settings
+            <Settings aria-hidden="true" className="h-4 w-4 text-neutral-500" />
+            <span>Settings</span>
           </Link>
+
+          {/* Help */}
           <button
-            className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#333] dark:text-[#ddd]"
             type="button"
-            disabled
+            onClick={() => setIsMenuOpen(false)}
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-white/5"
           >
-            <Archive aria-hidden="true" className="h-4 w-4" />
-            Archived Chats
+            <Headset aria-hidden="true" className="h-4 w-4 text-neutral-500" />
+            <span>Help & Support</span>
           </button>
+
+          <div className="my-1 border-t border-neutral-200 dark:border-neutral-700/70" />
+
+          {/* Log out */}
           <button
-            className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#333] dark:text-[#ddd]"
-            type="button"
-            disabled
-          >
-            <Headset aria-hidden="true" className="h-4 w-4" />
-            Customer Service Center
-          </button>
-          <div className="my-1 border-t border-[#ededed] dark:border-[#2b2d33]" />
-          <button
-            className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#333] transition hover:bg-[#f5f5f5] dark:text-[#ddd] dark:hover:bg-[#24262c]"
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
             type="button"
             onClick={handleLogout}
           >
             <LogOut aria-hidden="true" className="h-4 w-4" />
-            Log out
+            <span>Log out</span>
           </button>
         </div>
       )}

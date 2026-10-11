@@ -24,7 +24,13 @@ export async function extractPdfText(buffer) {
 // Returns a copy of the chat history where the latest user message carries the document.
 // Nothing is saved to the DB, so history stays clean; the document is re-sent each request.
 export function withDocumentContext(messages, docText) {
-  const copy = messages.map((m) => ({ role: m.role, content: m.content }));
+  const copy = messages.map((message) => ({
+    role: message.role,
+    content: message.content,
+    ...(message.reasoningDetails != null
+      ? { reasoningDetails: message.reasoningDetails }
+      : {}),
+  }));
 
   for (let i = copy.length - 1; i >= 0; i--) {
     if (copy[i].role === "user") {

@@ -1,6 +1,4 @@
 import { PanelLeft } from "lucide-react";
-import Theme from "../theme.jsx";
-import UserMenu from "../userMenu.jsx";
 
 function ChatHeader({
   title = "New chat",
@@ -27,11 +25,6 @@ function ChatHeader({
         >
           {title}
         </h1>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Theme />
-        <UserMenu />
       </div>
     </header>
   );

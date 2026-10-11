@@ -1,5 +1,10 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
 @variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
 
 @layer base {
   :root {
@@ -15,12 +20,13 @@
     --shadow:
       rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-    --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-    --heading: system-ui, "Segoe UI", Roboto, sans-serif;
-    --mono: ui-monospace, Consolas, monospace;
+    --sans: "Inter Variable", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --heading: "Inter Variable", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-    font: 18px/145% var(--sans);
-    letter-spacing: 0.18px;
+    font: 16px/160% var(--sans);
+    font-weight: 400;
+    letter-spacing: -0.01em;
     color-scheme: light;
     color: var(--text);
     background: var(--bg);
@@ -30,8 +36,36 @@
     -moz-osx-font-smoothing: grayscale;
 
     @media (max-width: 1024px) {
-      font-size: 16px;
+      font-size: 15px;
     }
+  }
+
+  html,
+  body,
+  #root,
+  button,
+  input,
+  textarea,
+  select {
+    font-family: var(--sans);
+  }
+
+  a,
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  select,
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  input:disabled {
+    cursor: not-allowed;
   }
 
   body {
@@ -236,4 +270,421 @@ textarea {
 
 :root[data-theme="dark"] #root .workspace-panel {
   background-color: #000 !important;
+}
+
+/* ==========================================================================
+   Code Block & Syntax Highlighting Themes
+   ========================================================================== */
+.code-block-container {
+  background-color: #e9e9eb !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 20px !important;
+}
+
+.code-block-header {
+  background-color: transparent !important;
+  border-bottom: none !important;
+  color: #0d0d0d !important;
+}
+
+.code-block-pre {
+  background: transparent !important;
+  color: #0d0d0d !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
+.code-block-pre code.hljs {
+  background: transparent !important;
+  color: #0d0d0d !important;
+  font-family: inherit !important;
+}
+
+/* Light Mode Syntax Highlight Tokens - matching ChatGPT */
+.hljs-keyword,
+.hljs-operator,
+.hljs-selector-tag {
+  color: #b84365 !important; /* Rose / Berry Magenta */
+  font-weight: 500;
+}
+
+.hljs-built_in,
+.hljs-type,
+.hljs-class {
+  color: #b84365 !important;
+  font-weight: 500;
+}
+
+.hljs-function,
+.hljs-title,
+.hljs-title.function_ {
+  color: #2563eb !important; /* Blue */
+  font-weight: 500;
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: #16a34a !important; /* Green */
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-boolean {
+  color: #b84365 !important;
+}
+
+.hljs-comment,
+.hljs-quote,
+.hljs-meta {
+  color: #64748b !important; /* Slate Muted */
+  font-style: italic;
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-attr,
+.hljs-property {
+  color: #0f172a !important; /* Dark identifier */
+}
+
+.hljs-params {
+  color: #0f172a !important;
+}
+
+.hljs-tag,
+.hljs-name {
+  color: #b84365 !important;
+}
+
+.hljs-subst {
+  color: #0f172a !important;
+}
+
+.hljs-punctuation {
+  color: #64748b !important;
+}
+
+/* Dark Mode Overrides: ChatGPT dark rounded code container */
+:root[data-theme="dark"] .code-block-container {
+  background-color: #2f2f2f !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 20px !important;
+}
+
+:root[data-theme="dark"] .code-block-header {
+  background-color: transparent !important;
+  border-bottom: none !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .code-block-pre {
+  background: transparent !important;
+  color: #f4f4f4 !important;
+}
+
+:root[data-theme="dark"] .code-block-pre code.hljs {
+  background: transparent !important;
+  color: #f4f4f4 !important;
+}
+
+:root[data-theme="dark"] .hljs-keyword,
+:root[data-theme="dark"] .hljs-operator,
+:root[data-theme="dark"] .hljs-selector-tag {
+  color: #f472b6 !important; /* Vivid Pink */
+}
+
+:root[data-theme="dark"] .hljs-built_in,
+:root[data-theme="dark"] .hljs-type,
+:root[data-theme="dark"] .hljs-class {
+  color: #f472b6 !important;
+}
+
+:root[data-theme="dark"] .hljs-function,
+:root[data-theme="dark"] .hljs-title,
+:root[data-theme="dark"] .hljs-title.function_ {
+  color: #60a5fa !important; /* Sky Blue */
+}
+
+:root[data-theme="dark"] .hljs-string,
+:root[data-theme="dark"] .hljs-regexp,
+:root[data-theme="dark"] .hljs-addition {
+  color: #4ade80 !important; /* Emerald / Mint Green */
+}
+
+:root[data-theme="dark"] .hljs-number,
+:root[data-theme="dark"] .hljs-literal,
+:root[data-theme="dark"] .hljs-boolean {
+  color: #fb923c !important; /* Warm Amber */
+}
+
+:root[data-theme="dark"] .hljs-comment,
+:root[data-theme="dark"] .hljs-quote,
+:root[data-theme="dark"] .hljs-meta {
+  color: #94a3b8 !important; /* Muted Slate */
+  font-style: italic;
+}
+
+:root[data-theme="dark"] .hljs-variable,
+:root[data-theme="dark"] .hljs-template-variable,
+:root[data-theme="dark"] .hljs-attr,
+:root[data-theme="dark"] .hljs-property {
+  color: #f472b6 !important; /* Rose / Pink */
+}
+
+:root[data-theme="dark"] .hljs-params {
+  color: #cbd5e1 !important; /* Soft Gray */
+}
+
+:root[data-theme="dark"] .hljs-tag,
+:root[data-theme="dark"] .hljs-name {
+  color: #f87171 !important; /* Coral Red */
+}
+
+:root[data-theme="dark"] .hljs-subst {
+  color: #e2e8f0 !important;
+}
+
+:root[data-theme="dark"] .hljs-punctuation {
+  color: #94a3b8 !important;
+}
+
+/* Custom Scrollbars for Tables and Code */
+.table-scroll,
+.code-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.35) transparent;
+}
+
+.table-scroll::-webkit-scrollbar,
+.code-scroll::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.table-scroll::-webkit-scrollbar-track,
+.code-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-scroll::-webkit-scrollbar-thumb,
+.code-scroll::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.35);
+  border-radius: 9999px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover,
+.code-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+/* ==========================================================================
+   Message Minimap — right-side navigator strip + hover popup
+   ========================================================================== */
+
+/* Root wrapper: right edge — pointer-events:none so only strip/popup are interactive */
+.message-minimap-root {
+  position: absolute;
+  top: 0;
+  right: 0;
+  /* Stop above the chat input — adjust if input height changes */
+  bottom: 80px;
+  width: 280px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;          /* vertically center strip + popup */
+  justify-content: flex-end;
+  pointer-events: none;         /* root is transparent — only children get events */
+  z-index: 20;
+}
+
+/* ── Popup panel ── */
+.message-minimap-popup {
+  /* Hidden by default — MUST be pointer-events:none so the invisible panel
+     doesn't block chat scroll/clicks while not visible */
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 6px 0;
+  width: 244px;
+  /* Show ~11 rows then scroll; never touch the header (~52px) or input (80px) + gap */
+  max-height: min(340px, calc(100vh - 180px));
+  height: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0,0,0,0.06);
+  opacity: 0;
+  transform: translateX(10px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+  will-change: opacity, transform;
+}
+
+.message-minimap-popup::-webkit-scrollbar {
+  width: 4px;
+}
+.message-minimap-popup::-webkit-scrollbar-track {
+  background: transparent;
+}
+.message-minimap-popup::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 99px;
+}
+
+.message-minimap-popup.visible {
+  opacity: 1;
+  transform: translateX(0);
+  /* Only intercept events when actually visible */
+  pointer-events: all;
+}
+
+/* ── Each row inside the popup ── */
+.minimap-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px 6px 14px;   /* comfortable click target ~30px tall */
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  min-height: 30px;
+  box-sizing: border-box;
+}
+
+.minimap-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.minimap-item.active {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* Label text */
+.minimap-item-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--sans);
+}
+
+.minimap-item.user .minimap-item-label {
+  color: #222;
+}
+
+.minimap-item.active .minimap-item-label {
+  color: #1a1a1a;
+}
+
+/* The dash on the right of each row */
+.minimap-item-dash {
+  display: block;
+  flex-shrink: 0;
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: #d1d5db;
+  transition: background 0.15s, width 0.15s;
+}
+
+.minimap-item-dash.active {
+  background: #3b82f6;
+  width: 18px;
+}
+
+/* ── Tick strip ── */
+.minimap-strip {
+  pointer-events: all;          /* strip is the hover target */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  width: 20px;
+  flex-shrink: 0;
+  height: auto;
+  cursor: default;
+}
+
+.minimap-tick {
+  display: block;
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: #d1d5db;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s, width 0.15s;
+  outline: none;
+}
+
+.minimap-tick:hover {
+  background: #9ca3af;
+  transform: scaleY(1.5);
+}
+
+.minimap-tick.active {
+  background: #3b82f6;
+  width: 18px;
+}
+
+/* ── Dark mode overrides ── */
+:root[data-theme="dark"] .message-minimap-popup {
+  background: rgba(38, 38, 42, 0.98);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0,0,0,0.25);
+}
+
+:root[data-theme="dark"] .message-minimap-popup::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+}
+
+:root[data-theme="dark"] .minimap-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .minimap-item.active {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+:root[data-theme="dark"] .minimap-item-label {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .minimap-item.user .minimap-item-label {
+  color: #e5e7eb;
+}
+
+:root[data-theme="dark"] .minimap-item.active .minimap-item-label {
+  color: #f3f4f6;
+}
+
+:root[data-theme="dark"] .minimap-item-dash {
+  background: #374151;
+}
+
+:root[data-theme="dark"] .minimap-tick {
+  background: #374151;
+}
+
+:root[data-theme="dark"] .minimap-tick:hover {
+  background: #6b7280;
 }

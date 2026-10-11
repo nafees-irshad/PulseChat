@@ -27,7 +27,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isInvalidUserSession =
+      error.response?.data?.code === "AUTHENTICATION_USER_NOT_FOUND";
+    if (error.response?.status === 401 || isInvalidUserSession) {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("token");
         if (

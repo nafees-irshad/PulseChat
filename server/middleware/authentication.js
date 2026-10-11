@@ -41,9 +41,10 @@ export const authenticateUser = async (req, res, next) => {
 
     //check if user exists
     if (!user) {
-      return res.status(404).json({
+      return res.status(401).json({
         status: "failed",
-        message: "user not found",
+        code: "AUTHENTICATION_USER_NOT_FOUND",
+        message: "User session is no longer valid. Please sign in again.",
       });
     }
 

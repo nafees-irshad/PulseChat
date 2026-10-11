@@ -8,6 +8,7 @@ import {
   saveMessage,
   getMessages,
   getUserConversations,
+  getUserConversation,
   renameUserConversation,
   deleteUserConversation,
 } from "../service/Data-Layer/chatHistory.js";
@@ -20,7 +21,8 @@ const MODEL_NAMES = {
   groq: "GPT-oss",
   glm: "Dots_Studio",
   gemma: "Gemma 4",
-  inclusionAI: "inclusionAI",
+  apodex: "Apodex 1.1 Mini",
+  nemotron: "Nemotron 3 Super 120B",
 };
 import { withDocumentContext } from "../service/External/pdfService.js";
 
@@ -100,8 +102,19 @@ export async function deleteConversation(req, res) {
 export async function getConversationMessages(req, res) {
   try {
     const conversationId = req.params.id;
+    const conversation = await getUserConversation(req.user.id, conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
     const messages = await getMessages(conversationId, 50);
-    res.json(messages);
+    res.json(
+      messages.map((message) => {
+        const data = message.toJSON();
+        delete data.reasoningDetails;
+        return data;
+      }),
+    );
   } catch (err) {
     console.error("getConversationMessages error:", err);
     res.status(500).json({ error: "Failed to fetch messages" });
@@ -127,6 +140,11 @@ export async function sendMessage(req, res) {
   }
 
   try {
+    const conversation = await getUserConversation(userId, conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
     // 1. Save the user's message (just the question, not the document)
     await saveMessage(conversationId, userId, "user", message);
 
@@ -150,7 +168,11 @@ export async function sendMessage(req, res) {
     res.flushHeaders();
 
     // 5. Stream the reply from the selected provider, with fallback
-    const { text: fullReply, modelUsed } = await streamWithFallback(
+    const {
+      text: fullReply,
+      modelUsed,
+      reasoningDetails,
+    } = await streamWithFallback(
       requestedModel,
       contextMessages,
       (chunkText) => {
@@ -166,6 +188,7 @@ export async function sendMessage(req, res) {
       fullReply,
       MODEL_NAMES[modelUsed] || modelUsed,
       MODEL_NAMES[requestedModel] || requestedModel,
+      reasoningDetails,
     );
 
     res.write(`data: ${JSON.stringify({ done: true, model: modelUsed })}\n\n`);

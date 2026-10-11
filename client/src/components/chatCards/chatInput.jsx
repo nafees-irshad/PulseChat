@@ -7,21 +7,20 @@ import {
 } from "react";
 import {
   ArrowUp,
-  AudioWaveform,
   Check,
   ChevronDown,
   FileText,
   LoaderCircle,
   Mic,
   Plus,
-  SlidersHorizontal,
   X,
 } from "lucide-react";
- 
+
 const models = [
   { id: "groq", name: "GPT-oss-120b", provider: "Groq" },
   { id: "glm", name: "Dots 3 Note Preview", provider: "OpenRouter" },
-  { id: "inclusionAI", name: "inclusionAI", provider: "OpenRouter" },
+  { id: "apodex", name: "Apodex 1.1 Mini", provider: "OpenRouter" },
+  { id: "nemotron", name: "Nemotron 3 Super 120B", provider: "Requesty" },
 ];
 
 function ChatInput({
@@ -30,16 +29,56 @@ function ChatInput({
   onModelChange,
   isSending = false,
   error = "",
-  placeholder = "Ask anything",
+  placeholder = "Ask Pulse AI",
   disabled = false,
 }) {
   const [draft, setDraft] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState("");
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const modelMenuRef = useRef(null);
   const modelButtonRef = useRef(null);
+  const displayedError = fileError || error;
+
+  const handleFileSelection = (file) => {
+    setFileError("");
+    setSelectedFile(null);
+    if (!file) return;
+
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    const expectedMimeType = {
+      pdf: "application/pdf",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      txt: "text/plain",
+    }[extension];
+    const isCompatibleTextMimeType =
+      extension === "txt" &&
+      ["", "text/plain", "application/octet-stream"].includes(file.type);
+
+    if (
+      !expectedMimeType ||
+      (file.type &&
+        file.type !== expectedMimeType &&
+        !isCompatibleTextMimeType)
+    ) {
+      setFileError("Choose a valid PDF, DOCX, or TXT file.");
+      return;
+    }
+    if (file.size === 0) {
+      setFileError(
+        "The selected file is empty. Choose a valid PDF, DOCX, or TXT file.",
+      );
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setFileError("Files must be 10 MB or smaller.");
+      return;
+    }
+
+    setSelectedFile(file);
+  };
 
   useEffect(() => {
     if (!isModelMenuOpen) return undefined;
@@ -67,15 +106,17 @@ function ChatInput({
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    textarea.style.height = "1px";
+
+    textarea.style.height = "auto";
     const sh = textarea.scrollHeight;
-    textarea.style.height = `${Math.min(Math.max(sh, 40), 200)}px`;
-    textarea.style.overflowY = sh > 200 ? "auto" : "hidden";
+    const newHeight = Math.min(Math.max(sh, 26), 220);
+    textarea.style.height = `${newHeight}px`;
+    textarea.style.overflowY = sh > 220 ? "auto" : "hidden";
   }, []);
 
   useLayoutEffect(() => {
     adjustTextareaHeight();
-  }, [draft, adjustTextareaHeight]);
+  }, [draft, selectedFile, adjustTextareaHeight]);
 
   const handleSubmit = (event) => {
     event?.preventDefault?.();
@@ -84,6 +125,10 @@ function ChatInput({
     setDraft("");
     onSend?.(trimmed, selectedFile);
     setSelectedFile(null);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "26px";
+      textareaRef.current.style.overflowY = "hidden";
+    }
   };
 
   const handleKeyDown = (event) => {
@@ -99,24 +144,38 @@ function ChatInput({
 
   return (
     <div className="w-full shrink-0 px-4 pb-3 sm:px-6">
-      {error && (
+      {displayedError && (
         <p
-          className="mx-auto mb-2 max-w-[680px] text-center text-[13px] text-red-600 dark:text-red-400"
+          className="mx-auto mb-2 max-w-[760px] text-center text-[13px] text-red-600 dark:text-red-400"
           role="alert"
         >
-          {error}
+          {displayedError}
         </p>
       )}
 
-      {/* Main Prompt Card (matching Figma) */}
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="sr-only"
+        accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,text/plain,.txt"
+        onChange={(event) => {
+          handleFileSelection(event.target.files?.[0] || null);
+          event.target.value = "";
+        }}
+        aria-label="Attach files"
+      />
+
+      {/* Main Prompt Card - Unified shape */}
       <form
         onSubmit={handleSubmit}
-        className="mx-auto flex w-full max-w-[680px] flex-col rounded-[26px] border border-neutral-200/90 bg-[#f4f4f4] px-4 pt-3.5 pb-2.5 shadow-2xs transition-all duration-150 focus-within:border-neutral-300 dark:border-neutral-700/80 dark:bg-[#2f2f2f] dark:focus-within:border-neutral-600"
+        className="mx-auto flex w-full max-w-[760px] flex-col rounded-[26px] border border-neutral-300/80 bg-[#f4f4f4] px-4 pt-3.5 pb-2.5 shadow-xs transition-colors duration-150 focus-within:border-neutral-400 focus-within:shadow-md dark:border-neutral-700/60 dark:bg-[#202123] dark:focus-within:border-neutral-500"
       >
         <label className="sr-only" htmlFor="chat-prompt-textarea">
           Ask Pulse AI
         </label>
 
+        {/* Selected file attachment badge */}
         {selectedFile && (
           <div className="mb-2 flex max-w-full items-center gap-2 self-start rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] text-neutral-700 dark:border-neutral-700 dark:bg-[#252525] dark:text-neutral-200">
             <FileText
@@ -128,8 +187,11 @@ function ChatInput({
             </span>
             <button
               type="button"
-              onClick={() => setSelectedFile(null)}
-              className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-black/5 hover:text-neutral-900 dark:hover:bg-white/10 dark:hover:text-white"
+              onClick={() => {
+                setSelectedFile(null);
+                setFileError("");
+              }}
+              className="grid h-5 w-5 cursor-pointer shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-black/5 hover:text-neutral-900 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label={`Remove ${selectedFile.name}`}
               title="Remove file"
             >
@@ -143,41 +205,33 @@ function ChatInput({
           ref={textareaRef}
           id="chat-prompt-textarea"
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            adjustTextareaHeight();
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isSending || disabled}
           rows={1}
-          className="min-h-[40px] w-full resize-none bg-transparent px-1 text-[15px] leading-relaxed text-[#0d0d0d] outline-none placeholder:text-neutral-500 dark:text-[#ececec] dark:placeholder:text-neutral-400"
+          className="min-h-[26px] w-full resize-none bg-transparent px-1 text-[15px] leading-relaxed text-[#0d0d0d] outline-none placeholder:text-neutral-400 dark:text-[#ececec] dark:placeholder:text-neutral-500"
         />
 
-        {/* Hidden File Input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="sr-only"
-          accept="application/pdf,.pdf"
-          onChange={(event) => {
-            setSelectedFile(event.target.files?.[0] || null);
-            event.target.value = "";
-          }}
-          aria-label="Attach files"
-        />
+        {/* Bottom row toolbar */}
+        <div className="mt-2 flex items-center justify-between pt-0.5">
+          {/* Left: + (Attach) button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-neutral-600 transition hover:bg-black/5 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-white"
+            title="Attach files"
+            aria-label="Attach files"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
 
-        {/* Controls row at the bottom of the card */}
-        <div className="flex items-center justify-between pt-1">
-          {/* Left controls: + (Attach) and Tools */}
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="grid h-8 w-8 place-items-center rounded-full text-neutral-600 transition hover:bg-black/5 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-white"
-              title="Attach files"
-              aria-label="Attach files"
-            >
-              <Plus className="h-[18px] w-[18px]" />
-            </button>
-
+          {/* Right controls: Model selector + Mic + Send button */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* Model selector dropdown */}
             <div className="relative" ref={modelMenuRef}>
               <button
                 ref={modelButtonRef}
@@ -186,18 +240,14 @@ function ChatInput({
                 aria-label={`Select model, currently ${selectedModel.name}`}
                 aria-expanded={isModelMenuOpen}
                 aria-controls="chat-model-menu"
-                className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-neutral-600 transition hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:text-neutral-300 dark:hover:bg-white/10 dark:focus-visible:outline-neutral-500"
+                className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-full px-2.5 text-[13px] font-normal text-neutral-600 transition hover:bg-black/5 hover:text-neutral-900 focus-visible:outline-2 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-neutral-200"
               >
-                <SlidersHorizontal
-                  aria-hidden="true"
-                  className="h-3.5 w-3.5 shrink-0"
-                />
-                <span>
-                  {selectedModel.name} ({selectedModel.provider})
+                <span className="max-w-[120px] truncate">
+                  {selectedModel.name}
                 </span>
                 <ChevronDown
                   aria-hidden="true"
-                  className={`h-3.5 w-3.5 text-neutral-400 transition-transform ${isModelMenuOpen ? "rotate-180" : ""}`}
+                  className={`h-3.5 w-3.5 opacity-70 transition-transform ${isModelMenuOpen ? "rotate-180" : ""}`}
                 />
               </button>
 
@@ -206,7 +256,7 @@ function ChatInput({
                   id="chat-model-menu"
                   role="group"
                   aria-label="Choose an AI model"
-                  className="absolute bottom-full left-0 z-30 mb-2 w-64 overflow-hidden rounded-xl border border-neutral-200 bg-white p-1.5 shadow-xl shadow-black/10 dark:border-neutral-700 dark:bg-[#252525] dark:shadow-black/30"
+                  className="absolute bottom-full right-0 z-30 mb-2 w-64 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-1.5 shadow-xl shadow-black/10 dark:border-neutral-700 dark:bg-[#252525] dark:shadow-black/40"
                 >
                   <p className="px-2.5 pt-1.5 pb-2 text-[11px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-neutral-500">
                     Choose a model
@@ -222,7 +272,7 @@ function ChatInput({
                           onModelChange?.(option.id);
                           setIsModelMenuOpen(false);
                         }}
-                        className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left transition ${
+                        className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-2.5 py-2 text-left transition ${
                           isSelected
                             ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-700/70 dark:text-white"
                             : "text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-white/5"
@@ -248,54 +298,46 @@ function ChatInput({
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Right controls: Mic and Audio / Send button */}
-          <div className="flex items-center gap-1.5">
+            {/* Mic icon */}
             <button
               type="button"
-              className="grid h-8 w-8 place-items-center rounded-full text-neutral-600 transition hover:bg-black/5 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-white"
+              className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-neutral-500 transition hover:bg-black/5 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-neutral-200"
               title="Use voice input"
               aria-label="Use voice input"
             >
               <Mic className="h-[18px] w-[18px]" />
             </button>
 
-            {hasDraft || isSending ? (
-              <button
-                type="submit"
-                disabled={!hasDraft || isSending || disabled}
-                aria-label="Send message"
-                title="Send message"
-                className="grid h-8 w-8 place-items-center rounded-full bg-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:opacity-40 dark:bg-white dark:text-black dark:disabled:bg-neutral-600"
-              >
-                {isSending ? (
-                  <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <ArrowUp className="h-4 w-4" />
-                )}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="grid h-8 w-8 place-items-center rounded-full bg-black text-white transition hover:opacity-90 dark:bg-white dark:text-black"
-                title="Voice mode"
-                aria-label="Voice mode"
-              >
-                <AudioWaveform className="h-4 w-4" />
-              </button>
-            )}
+            {/* Send button */}
+            <button
+              type="submit"
+              disabled={!hasDraft || isSending || disabled}
+              aria-label="Send message"
+              title="Send message"
+              className={`grid h-8 w-8 place-items-center rounded-full transition-all ${
+                hasDraft && !isSending && !disabled
+                  ? "cursor-pointer bg-neutral-900 text-white hover:opacity-90 dark:bg-white dark:text-black"
+                  : "cursor-not-allowed bg-neutral-200 text-neutral-400 dark:bg-[#383838] dark:text-neutral-500"
+              }`}
+            >
+              {isSending ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUp className="h-4 w-4 stroke-[2.5]" />
+              )}
+            </button>
           </div>
         </div>
       </form>
 
-      {/* Footer below chat input box (as requested) */}
+      {/* Footer below chat input box */}
       <footer className="mt-2.5 text-center text-[12px] text-neutral-400 select-none dark:text-neutral-500">
-        © {new Date().getFullYear()} Pulse AI. Pulse AI can make mistakes. Check
-        important info.
+        AI-generated content may not be accurate.
       </footer>
     </div>
   );
 }
 
 export default ChatInput;
+

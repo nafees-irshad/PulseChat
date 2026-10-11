@@ -8,13 +8,37 @@ import {
   renameConversation as renameConversationRequest,
   startMessage,
 } from "../api/conversationApi.js";
+import { Code, Lightbulb, PanelLeft, Sparkles, Table } from "lucide-react";
 import {
-  ChatHeader,
   ChatInput,
   ChatMessages,
+  MessageMinimap,
 } from "../components/chatCards/index.js";
 import ConversationCard from "../components/conversationCard.jsx";
 import { useConversation } from "../context/useConversation.js";
+
+const SUGGESTION_PROMPTS = [
+  {
+    icon: Code,
+    label: "Python script",
+    prompt: "Write a clean Python script to parse and analyze JSON data with error handling",
+  },
+  {
+    icon: Table,
+    label: "Comparison table",
+    prompt: "Create a detailed financial comparison table for Q1 budgeting with revenue, expenses, and profit",
+  },
+  {
+    icon: Lightbulb,
+    label: "Brainstorm ideas",
+    prompt: "Brainstorm 5 innovative full-stack project ideas with modern UI/UX",
+  },
+  {
+    icon: Sparkles,
+    label: "Explain a concept",
+    prompt: "Explain how React reconciles virtual DOM in simple, clear terms",
+  },
+];
 
 async function fetchConversationList() {
   const result = await listConversations();
@@ -53,6 +77,7 @@ function StartChat() {
   const skipHistoryForId = useRef(null);
   const initialPromptHandled = useRef(false);
   const sendPromptRef = useRef(null);
+  const chatScrollRef = useRef(null);
   const isLoadingMessages =
     Boolean(routeConversationId) &&
     loadedConversationId !== routeConversationId;
@@ -209,24 +234,45 @@ function StartChat() {
     async (rawPrompt, attachedFile = null) => {
       const prompt = rawPrompt.trim();
       if (!prompt || isSending) return;
+      if (routeConversationId && isLoadingConversations) return;
+
+      const existingConversation = conversations.find(
+        (item) => String(item.id) === routeConversationId,
+      );
+      const shouldCreateConversation =
+        !routeConversationId || !existingConversation;
 
       setError("");
       setIsSending(true);
-      setIsCreatingConversation(!routeConversationId);
+      setIsCreatingConversation(shouldCreateConversation);
 
       const timestamp = Date.now();
       const userMessageId = `local-user-${timestamp}`;
       const assistantMessageId = `local-assistant-${timestamp}`;
       setPendingAssistantId(assistantMessageId);
+      let isDocumentUploaded = false;
       setMessages((current) => [
         ...current,
-        { id: userMessageId, role: "user", content: prompt },
+        {
+          id: userMessageId,
+          role: "user",
+          content: prompt,
+          ...(attachedFile?.size > 0
+            ? {
+                attachment: {
+                  name: attachedFile.name,
+                  uploadProgress: 0,
+                  uploadStatus: "uploading",
+                },
+              }
+            : {}),
+        },
         { id: assistantMessageId, role: "assistant", content: "" },
       ]);
 
       try {
-        let conversation = activeConversation;
-        if (!routeConversationId) {
+        let conversation = existingConversation || activeConversation;
+        if (shouldCreateConversation) {
           conversation = await startConversation({ message: prompt });
           setConversations((current) => [
             conversation,
@@ -236,13 +282,7 @@ function StartChat() {
           setLoadedConversationId(String(conversation.id));
           skipHistoryForId.current = String(conversation.id);
           navigate(`/chat/${conversation.id}`, { replace: true });
-        } else if (
-          !conversation ||
-          String(conversation.id) !== routeConversationId
-        ) {
-          conversation = conversations.find(
-            (item) => String(item.id) === routeConversationId,
-          ) || { id: routeConversationId, title: "Conversation" };
+        } else if (String(conversation?.id) !== routeConversationId) {
           selectConversation(conversation);
         }
 
@@ -251,6 +291,18 @@ function StartChat() {
           const extractedDocument = await extractDocument(
             attachedFile,
             conversation.id,
+            (uploadProgress) => {
+              setMessages((current) =>
+                current.map((item) =>
+                  item.id === userMessageId && item.attachment
+                    ? {
+                        ...item,
+                        attachment: { ...item.attachment, uploadProgress },
+                      }
+                    : item,
+                ),
+              );
+            },
           );
           documentId = extractedDocument.documentId;
           if (!documentId) {
@@ -258,6 +310,21 @@ function StartChat() {
               "The document service did not return a document ID.",
             );
           }
+          isDocumentUploaded = true;
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === userMessageId && item.attachment
+                ? {
+                    ...item,
+                    attachment: {
+                      ...item.attachment,
+                      uploadProgress: 100,
+                      uploadStatus: "uploaded",
+                    },
+                  }
+                : item,
+            ),
+          );
         }
 
         const { text: reply, model: respondingModel } = await startMessage(
@@ -291,7 +358,21 @@ function StartChat() {
         await refreshConversations();
       } catch (requestError) {
         setMessages((current) =>
-          current.filter((item) => item.id !== assistantMessageId),
+          current
+            .filter((item) => item.id !== assistantMessageId)
+            .map((item) =>
+              item.id === userMessageId &&
+              item.attachment &&
+              !isDocumentUploaded
+                ? {
+                    ...item,
+                    attachment: {
+                      ...item.attachment,
+                      uploadStatus: "failed",
+                    },
+                  }
+                : item,
+            ),
         );
         setError(
           requestError.response?.data?.error ||
@@ -307,6 +388,7 @@ function StartChat() {
     [
       activeConversation,
       conversations,
+      isLoadingConversations,
       isSending,
       model,
       navigate,
@@ -378,25 +460,25 @@ function StartChat() {
           isSidebarOpen ? "z-0" : "z-40"
         }`}
       >
-        <ChatHeader
-          title={
-            activeConversation?.title ||
-            conversations.find(
-              (conversation) =>
-                String(conversation.id) === String(routeConversationId),
-            )?.title ||
-            "New chat"
-          }
-          isSidebarOpen={isSidebarOpen}
-          onToggleSidebar={() => setIsSidebarOpen(true)}
-        />
+        {/* Floating open sidebar button when sidebar is collapsed */}
+        {!isSidebarOpen && (
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="absolute top-3.5 left-3.5 z-30 grid h-8.5 w-8.5 place-items-center rounded-lg border border-neutral-200/70 bg-white/90 text-neutral-600 shadow-2xs backdrop-blur-sm transition hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-700/70 dark:bg-[#212121]/90 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white"
+            aria-label="Open sidebar"
+            title="Open sidebar"
+          >
+            <PanelLeft className="h-[18px] w-[18px]" />
+          </button>
+        )}
 
         {messages.length === 0 ? (
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-10">
-            <h1 className="mb-7 text-center text-[28px] font-medium tracking-tight text-[#0d0d0d] sm:text-[34px] dark:text-white">
-              What can I help with ?
+            <h1 className="mb-6 text-center text-[28px] font-semibold tracking-tight text-[#0d0d0d] sm:text-[34px] dark:text-white">
+              What can I help with?
             </h1>
-            <div className="w-full max-w-[900px]">
+            <div className="w-full max-w-[760px]">
               <ChatInput
                 key={routeConversationId || "new"}
                 onSend={sendPrompt}
@@ -404,17 +486,48 @@ function StartChat() {
                 onModelChange={setModel}
                 isSending={isSending}
                 error={error}
+                disabled={Boolean(
+                  routeConversationId &&
+                    (isLoadingConversations || isLoadingMessages),
+                )}
               />
+
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                {SUGGESTION_PROMPTS.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => sendPrompt(item.prompt)}
+                    className="inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-white/80 px-3.5 py-1.5 text-[12.5px] font-medium text-neutral-600 shadow-2xs transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-[#202024] dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-[#2a2a30] dark:hover:text-white"
+                  >
+                    <item.icon className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500" />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
           <>
             <ChatMessages
+              ref={chatScrollRef}
+              title={
+                activeConversation?.title ||
+                conversations.find(
+                  (conversation) =>
+                    String(conversation.id) === String(routeConversationId),
+                )?.title ||
+                ""
+              }
               messages={messages}
               isLoading={isLoadingMessages}
               isSending={isSending}
               pendingAssistantId={pendingAssistantId}
               onSelectPrompt={sendPrompt}
+            />
+            <MessageMinimap
+              messages={messages}
+              scrollContainer={chatScrollRef}
             />
 
             <ChatInput
@@ -424,6 +537,10 @@ function StartChat() {
               onModelChange={setModel}
               isSending={isSending}
               error={error}
+              disabled={Boolean(
+                routeConversationId &&
+                  (isLoadingConversations || isLoadingMessages),
+              )}
             />
           </>
         )}

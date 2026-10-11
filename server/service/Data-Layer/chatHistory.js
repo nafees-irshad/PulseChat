@@ -13,6 +13,7 @@ export async function saveMessage(
   content,
   model = null,
   requestedModel = null,
+  reasoningDetails = null,
 ) {
   return Message.create({
     conversationId,
@@ -21,6 +22,7 @@ export async function saveMessage(
     content,
     model,
     requestedModel,
+    reasoningDetails,
   });
 }
 
@@ -41,10 +43,12 @@ export async function getUserConversations(userId) {
   });
 }
 
+export async function getUserConversation(userId, conversationId) {
+  return Conversation.findOne({ where: { id: conversationId, userId } });
+}
+
 export async function renameUserConversation(userId, conversationId, title) {
-  const conversation = await Conversation.findOne({
-    where: { id: conversationId, userId },
-  });
+  const conversation = await getUserConversation(userId, conversationId);
   if (!conversation) return null;
 
   conversation.title = title;

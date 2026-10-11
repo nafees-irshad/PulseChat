@@ -1,20 +1,20 @@
 import OpenAI from "openai";
 
 const client = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPEN_ROUTER_KEY,
-  timeout: 120,
-  max_retries: 2,
+  apiKey: process.env.REQUESTY_API_KEY,
+  baseURL: "https://router.requesty.ai/v1",
+  timeout: 120_000,
 });
 
-const MODEL = "inclusionai/ling-3.0-flash-sante:free";
+const MODEL = "nvidia/nemotron-3-super-120b-a12b";
+
+export const firstChunkTimeoutMs = 120_000;
 
 export async function streamReply(messages, onChunk) {
   const stream = await client.chat.completions.create({
     model: MODEL,
     messages: messages.map(({ role, content }) => ({ role, content })),
     stream: true,
-    reasoning: { enabled: true },
   });
 
   let fullText = "";
@@ -25,6 +25,10 @@ export async function streamReply(messages, onChunk) {
       fullText += text;
       onChunk(text);
     }
+  }
+
+  if (!fullText) {
+    throw new Error("Nemotron returned no assistant message content");
   }
 
   return fullText;

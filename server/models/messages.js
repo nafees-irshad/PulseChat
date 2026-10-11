@@ -10,11 +10,11 @@ export default (sequelize, DataTypes) => {
         autoIncrement: true,
       },
       conversationId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
       },
       userId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
       },
       role: {
@@ -31,6 +31,10 @@ export default (sequelize, DataTypes) => {
       },
       requestedModel: {
         type: DataTypes.STRING,
+        allowNull: true,
+      },
+      reasoningDetails: {
+        type: DataTypes.JSON,
         allowNull: true,
       },
     },
