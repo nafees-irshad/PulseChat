@@ -339,7 +339,7 @@ function ConversationCard({
 
       {/* Profile at the bottom of the sidebar */}
       <div className="shrink-0 p-2.5 pt-1">
-        <UserMenu variant="sidebar" />
+        <UserMenu />
       </div>
 
       {renameTarget && (

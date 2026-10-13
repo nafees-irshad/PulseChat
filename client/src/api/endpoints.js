@@ -1,6 +1,7 @@
 const API_ENDPOINTS = {
   USERS: {
     REGISTER: "/user/register",
+    CONFIRM_OTP: "/user/confirm-otp",
     LOGIN: "/user/login",
     GOOGLE: "/user/google",
     PROFILE: "/user/profile",

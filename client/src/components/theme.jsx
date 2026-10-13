@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 
-const THEME_STORAGE_KEY = "espresso-theme";
+const THEME_STORAGE_KEY = "pulse-theme";
 
 function getInitialTheme() {
-  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+  const storedTheme =
+    window.localStorage.getItem(THEME_STORAGE_KEY) ||
+    window.localStorage.getItem("espresso-theme");
   if (storedTheme === "light" || storedTheme === "dark") return storedTheme;
 
   return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -19,7 +21,22 @@ function Theme() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    window.localStorage.setItem("espresso-theme", theme);
+    window.dispatchEvent(
+      new CustomEvent("pulse-theme-change", { detail: theme }),
+    );
   }, [theme]);
+
+  useEffect(() => {
+    const handleThemeChange = (event) => {
+      if (event.detail === "light" || event.detail === "dark") {
+        setTheme(event.detail);
+      }
+    };
+    window.addEventListener("pulse-theme-change", handleThemeChange);
+    return () =>
+      window.removeEventListener("pulse-theme-change", handleThemeChange);
+  }, []);
 
   return (
     <button

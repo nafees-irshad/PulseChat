@@ -9,3 +9,12 @@ export async function signup(data) {
 
     return response.data;
 }
+
+export async function confirmOtp(email, otp) {
+    const response = await api.post(
+        API_ENDPOINTS.USERS.CONFIRM_OTP,
+        { email, otp }
+    );
+
+    return response.data;
+}

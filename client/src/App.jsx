@@ -7,6 +7,7 @@ import { useAuth } from "./context/useAuth.js";
 import LoginPage from "./pages/users/login.jsx";
 import ProfilePage from "./pages/users/profile.jsx";
 import SignupPage from "./pages/users/signup.jsx";
+import AppearancePage from "./pages/users/appearance.jsx";
 import StartChat from "./pages/startChat.jsx";
 
 function App() {
@@ -45,6 +46,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/appearance"
+          element={
+            <ProtectedRoute>
+              <AppearancePage />
             </ProtectedRoute>
           }
         />

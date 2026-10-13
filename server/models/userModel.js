@@ -22,6 +22,19 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      isVerified: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      otpHash: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      otpExpiresAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       tableName: "users", // match whatever your migration created
