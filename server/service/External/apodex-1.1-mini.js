@@ -11,7 +11,7 @@ const MODEL = "apodex/apodex-1.1-mini:free";
 export const firstChunkTimeoutMs = 120_000;
 
 export async function streamReply(messages, onChunk) {
-  const apiResponse = await client.chat.completions.create({
+  const stream = await client.chat.completions.create({
     model: MODEL,
     messages: messages.map(
       ({ role, content, reasoningDetails, reasoning_details }) => ({
@@ -22,18 +22,38 @@ export async function streamReply(messages, onChunk) {
           : {}),
       }),
     ),
+    stream: true,
     reasoning: { enabled: true },
   });
 
-  const response = apiResponse.choices[0]?.message;
-  const text = response?.content;
-  if (typeof text !== "string") {
+  let fullText = "";
+  let reasoningDetails = null;
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta;
+    const text = delta?.content;
+    if (typeof text === "string" && text.length > 0) {
+      fullText += text;
+      onChunk(text);
+    }
+
+    const reasoningDelta = delta?.reasoning_details;
+    if (Array.isArray(reasoningDelta)) {
+      reasoningDetails = [
+        ...(Array.isArray(reasoningDetails) ? reasoningDetails : []),
+        ...reasoningDelta,
+      ];
+    } else if (reasoningDelta != null) {
+      reasoningDetails = reasoningDelta;
+    }
+  }
+
+  if (!fullText) {
     throw new Error("Apodex returned no assistant message content");
   }
 
-  onChunk(text);
   return {
-    text,
-    reasoningDetails: response.reasoning_details ?? null,
+    text: fullText,
+    reasoningDetails,
   };
 }

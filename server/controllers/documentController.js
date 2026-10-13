@@ -1,5 +1,8 @@
 import multer from "multer";
-import { extractTextFromFile } from "../service/External/textExtractionService.js";
+import {
+  extractTextFromFile,
+  NoTextError,
+} from "../service/External/textExtractionService.js";
 
 import db from "../models/index.js"; // adjust path to match your project
 
@@ -49,33 +52,26 @@ export async function uploadDocument(req, res) {
   }
 
   try {
+    // Some browsers send .txt files as application/octet-stream, so trust the extension
+    const mimetype = req.file.originalname.toLowerCase().endsWith(".txt")
+      ? "text/plain"
+      : req.file.mimetype;
+
+    // Tries the normal text extraction first, then OCR (scanned PDFs, scanned DOCX, images).
+    // Returns { text, totalPages, method } or throws NoTextError when every method failed.
     let result;
     try {
-      const mimetype = req.file.originalname.toLowerCase().endsWith(".txt")
-        ? "text/plain"
-        : req.file.mimetype;
       result = await extractTextFromFile(req.file.buffer, mimetype);
     } catch (err) {
-      console.warn("Could not read uploaded document:", err.message);
-      return res.status(422).json({
-        error:
-          "The uploaded file is invalid or could not be read. Choose a valid PDF, DOCX, or TXT file.",
-      });
-    }
-
-    if (result.isLikelyScanned) {
-      return res.status(422).json({
-        error:
-          req.file.mimetype === "application/pdf"
-            ? "No text could be extracted. If this is a scanned PDF, try uploading it as an image (JPG/PNG) instead."
-            : "No readable text could be extracted from this file. Choose a valid PDF, DOCX, or TXT document.",
-      });
-    }
-
-    if (!result.text.trim()) {
-      return res.status(422).json({
-        error: "No readable text could be extracted from this file.",
-      });
+      if (err instanceof NoTextError) {
+        console.warn("No text could be extracted:", err.message);
+        return res.status(422).json({
+          error:
+            "No readable text could be extracted from this file, even with OCR. Try a clearer scan or a different file.",
+          details: err.message, // which steps were tried and why each failed
+        });
+      }
+      throw err; // anything else is unexpected, so let the outer catch return a 500
     }
 
     const document = await Document.create({
@@ -91,6 +87,7 @@ export async function uploadDocument(req, res) {
       documentId: document.id,
       originalName: document.originalName,
       totalPages: document.totalPages,
+      method: result.method, // e.g. "pdf-text", "pdf-ocr", "docx-ocr", "image-ocr", "txt"
     });
   } catch (err) {
     console.error("uploadDocument error:", err);

@@ -267,7 +267,12 @@ function StartChat() {
               }
             : {}),
         },
-        { id: assistantMessageId, role: "assistant", content: "" },
+        {
+          id: assistantMessageId,
+          role: "assistant",
+          content: "",
+          documentStatus: attachedFile?.size > 0 ? "extracting" : null,
+        },
       ]);
 
       try {
@@ -322,6 +327,13 @@ function StartChat() {
                       uploadStatus: "uploaded",
                     },
                   }
+                : item,
+            ),
+          );
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === assistantMessageId
+                ? { ...item, documentStatus: null }
                 : item,
             ),
           );

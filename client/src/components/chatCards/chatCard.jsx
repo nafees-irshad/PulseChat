@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import { Check, Code, Copy, FileText } from "lucide-react";
+import { Check, Code, Copy, FileText, LoaderCircle } from "lucide-react";
 import hljs from "highlight.js/lib/common";
 import "katex/dist/katex.min.css";
 
@@ -289,15 +289,33 @@ function ChatCard({ message, isPending = false }) {
     >
       <div className="w-full max-w-[760px] text-left text-[15.5px] leading-[1.7] text-neutral-800 dark:!text-[#ececec]">
         {isPending && !content ? (
-          <div className="flex items-center gap-2.5 py-2 text-neutral-500 dark:text-neutral-400">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-            </span>
-            <span className="animate-pulse text-[14px] font-medium">
-              Thinking...
-            </span>
-          </div>
+          message.documentStatus ? (
+            <div
+              className="flex items-start gap-2.5 py-2 text-neutral-500 dark:text-neutral-400"
+              role="status"
+              aria-live="polite"
+            >
+              <LoaderCircle
+                aria-hidden="true"
+                className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-violet-500"
+              />
+              <div>
+                <p className="text-[14px] font-medium text-neutral-700 dark:text-neutral-200">
+                  Extracting text
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5 py-2 text-neutral-500 dark:text-neutral-400">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+              </span>
+              <span className="animate-pulse text-[14px] font-medium">
+                Thinking...
+              </span>
+            </div>
+          )
         ) : (
           <div className="prose prose-neutral dark:prose-invert max-w-none">
             <ReactMarkdown
@@ -498,4 +516,3 @@ function ChatCard({ message, isPending = false }) {
 }
 
 export default ChatCard;
-
