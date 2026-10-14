@@ -283,6 +283,9 @@ function StartChat() {
             ? {
                 attachment: {
                   name: attachedFile.name,
+                  size: attachedFile.size,
+                  extension:
+                    attachedFile.name.split(".").pop()?.toUpperCase() || "FILE",
                   uploadProgress: 0,
                   uploadStatus: "uploading",
                 },

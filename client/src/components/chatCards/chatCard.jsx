@@ -8,6 +8,7 @@ import {
   Check,
   ChevronRight,
   Copy,
+  File,
   FileText,
   LoaderCircle,
 } from "lucide-react";
@@ -250,60 +251,78 @@ function ChatCard({ message, isPending = false }) {
   };
 
   if (isUserMessage) {
+    const attachmentExtension = message.attachment?.extension || "FILE";
+    const isPdfAttachment = attachmentExtension === "PDF";
+    const attachmentSize = Number(message.attachment?.size);
+    const formattedAttachmentSize = Number.isFinite(attachmentSize)
+      ? attachmentSize >= 1024 * 1024
+        ? `${(attachmentSize / (1024 * 1024)).toFixed(2)} MB`
+        : `${(attachmentSize / 1024).toFixed(2)} KB`
+      : "";
+
     return (
       <article className="flex w-full flex-col items-end" aria-label="Your message">
-        <div className="max-w-[min(85%,640px)] rounded-[22px] rounded-br-[6px] bg-[#f0f4f9] px-4.5 py-3 text-left text-[15px] leading-relaxed text-neutral-900 shadow-2xs dark:!bg-[#28282c] dark:!text-[#f4f4f4]">
-          {content && (
-            <p className="whitespace-pre-wrap break-words">{content}</p>
-          )}
-          {message.attachment && (
-            <div
-              className={`${content ? "mt-2.5" : ""} min-w-52 max-w-full rounded-xl border border-neutral-300/70 bg-white/70 px-3 py-2 shadow-2xs dark:border-neutral-700/80 dark:bg-black/20`}
+        {message.attachment && (
+          <div className="mb-3 flex w-[min(100%,360px)] items-center gap-3 rounded-[22px] border border-neutral-200 bg-white px-4 py-3.5 text-left shadow-sm dark:border-neutral-700 dark:bg-[#2a2a2d]">
+            <span
+              className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${
+                isPdfAttachment
+                  ? "bg-[#f24e3e] text-white"
+                  : "bg-neutral-100 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-200"
+              }`}
             >
-              <div className="flex items-center gap-2">
-                <FileText
-                  aria-hidden="true"
-                  className="h-4 w-4 shrink-0 text-neutral-500"
-                />
+              {isPdfAttachment ? (
+                <FileText aria-hidden="true" className="h-6 w-6" />
+              ) : (
+                <File aria-hidden="true" className="h-6 w-6" />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className="block truncate text-[14px] font-semibold text-neutral-900 dark:text-neutral-100"
+                title={message.attachment.name}
+              >
+                {message.attachment.name}
+              </span>
+              <span
+                className={`mt-0.5 block text-[12px] ${
+                  message.attachment.uploadStatus === "failed"
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-neutral-500 dark:text-neutral-400"
+                }`}
+                aria-live="polite"
+              >
+                {message.attachment.uploadStatus === "failed"
+                  ? "Upload failed"
+                  : message.attachment.uploadStatus === "uploading"
+                    ? `Uploading ${message.attachment.uploadProgress}%`
+                    : `${attachmentExtension}${formattedAttachmentSize ? ` · ${formattedAttachmentSize}` : ""}`}
+              </span>
+              {message.attachment.uploadStatus === "uploading" && (
                 <span
-                  className="min-w-0 flex-1 truncate text-[12px]"
-                  title={message.attachment.name}
-                >
-                  {message.attachment.name}
-                </span>
-                <span
-                  className={`shrink-0 text-[11px] ${
-                    message.attachment.uploadStatus === "failed"
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-neutral-500 dark:text-neutral-400"
-                  }`}
-                  aria-live="polite"
-                >
-                  {message.attachment.uploadStatus === "uploading"
-                    ? `${message.attachment.uploadProgress}%`
-                    : message.attachment.uploadStatus === "uploaded"
-                      ? "Uploaded"
-                      : "Upload failed"}
-                </span>
-              </div>
-              {message.attachment.uploadStatus !== "failed" && (
-                <div
-                  className="mt-2 h-1 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-600"
+                  className="mt-2 block h-1 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-600"
                   role="progressbar"
                   aria-label={`Uploading ${message.attachment.name}`}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={message.attachment.uploadProgress}
                 >
-                  <div
-                    className="h-full rounded-full bg-blue-500 transition-[width] duration-150"
-                    style={{ width: `${message.attachment.uploadProgress}%` }}
+                  <span
+                    className="block h-full rounded-full bg-blue-500 transition-[width] duration-150"
+                    style={{
+                      width: `${message.attachment.uploadProgress}%`,
+                    }}
                   />
-                </div>
+                </span>
               )}
-            </div>
-          )}
-        </div>
+            </span>
+          </div>
+        )}
+        {content && (
+          <div className="max-w-[min(85%,640px)] rounded-[22px] rounded-br-[6px] bg-[#f0f4f9] px-4.5 py-3 text-left text-[15px] leading-relaxed text-neutral-900 shadow-2xs dark:!bg-[#28282c] dark:!text-[#f4f4f4]">
+            <p className="whitespace-pre-wrap break-words">{content}</p>
+          </div>
+        )}
         {content && (
           <button
             type="button"
