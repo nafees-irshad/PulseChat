@@ -1,8 +1,8 @@
-'use strict';
+"use strict";
 
 /** @type {import('sequelize-cli').Migration} */
 export async function up(queryInterface, Sequelize) {
-  await queryInterface.createTable('messages', {
+  await queryInterface.createTable("messages", {
     id: {
       type: Sequelize.INTEGER,
       primaryKey: true,
@@ -14,26 +14,26 @@ export async function up(queryInterface, Sequelize) {
       type: Sequelize.INTEGER,
       allowNull: false,
       references: {
-        model: 'conversations',
-        key: 'id',
+        model: "conversations",
+        key: "id",
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE',
+      onUpdate: "CASCADE",
+      onDelete: "CASCADE",
     },
 
     userId: {
       type: Sequelize.INTEGER,
       allowNull: false,
       references: {
-        model: 'users',
-        key: 'id',
+        model: "users",
+        key: "id",
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE',
+      onUpdate: "CASCADE",
+      onDelete: "CASCADE",
     },
 
     role: {
-      type: Sequelize.ENUM('user', 'assistant', 'system'),
+      type: Sequelize.ENUM("user", "assistant", "system"),
       allowNull: false,
     },
 
@@ -55,10 +55,5 @@ export async function up(queryInterface, Sequelize) {
 }
 
 export async function down(queryInterface) {
-  await queryInterface.dropTable('messages');
-
-  // Required for MySQL when using ENUM
-  await queryInterface.sequelize.query(
-    'DROP TYPE IF EXISTS `messages_role`'
-  );
+  await queryInterface.dropTable("messages");
 }
