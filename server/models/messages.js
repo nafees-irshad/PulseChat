@@ -37,6 +37,10 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.JSON,
         allowNull: true,
       },
+      thoughtTimeMs: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
     },
     {
       tableName: "messages",

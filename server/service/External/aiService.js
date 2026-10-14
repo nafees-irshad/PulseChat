@@ -24,11 +24,10 @@ export async function streamWithFallback(
     ...Object.keys(providers).filter((name) => name !== preferred),
   ];
 
-  let lastError;
-
   for (const name of order) {
-    let started = false; // has this model already sent text to the client?
-    let abandoned = false; // did we give up on it (timeout)?
+    let started = false;
+    let abandoned = false;
+    let bufferedText = "";
     let timer;
 
     const timeout = new Promise((_, reject) => {
@@ -39,30 +38,45 @@ export async function streamWithFallback(
     });
 
     const run = providers[name].streamReply(messages, (chunk) => {
-      if (abandoned) return; // ignore late chunks from a model we gave up on
-      started = true;
-      clearTimeout(timer);
+      if (abandoned || typeof chunk !== "string" || !chunk) return;
+
+      if (!started) {
+        bufferedText += chunk;
+        if (!bufferedText.trim()) return;
+
+        started = true;
+        clearTimeout(timer);
+        onChunk(bufferedText);
+        bufferedText = "";
+        return;
+      }
+
       onChunk(chunk);
     });
-    run.catch((e) => console.error(`${name} underlying error:`, e.message)); // avoids an unhandled rejection if the timeout wins
+    run.catch((e) => console.error(`${name} underlying error:`, e.message));
 
     try {
       const result = await Promise.race([run, timeout]);
-      return {
-        ...(typeof result === "string" ? { text: result } : result),
-        modelUsed: name,
-      };
+      const response = typeof result === "string" ? { text: result } : result;
+      if (typeof response?.text !== "string" || !response.text.trim()) {
+        throw new Error(`${name} returned no assistant response`);
+      }
+
+      if (!started) onChunk(response.text);
+      return { ...response, modelUsed: name };
     } catch (err) {
       console.error(`${name} failed:`, err.message);
-      lastError = err;
 
-      // Text already reached the client, so we can't cleanly retry
+      // Once visible response text is sent, retrying would mix model responses.
       if (started) throw err;
-      // otherwise loop on to the next model
     } finally {
       clearTimeout(timer);
     }
   }
 
-  throw lastError; // every model failed
+  const error = new Error(
+    "No model returned a response. Please try again or choose another model.",
+  );
+  error.code = "NO_MODEL_RESPONSE";
+  throw error;
 }

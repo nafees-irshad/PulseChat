@@ -168,6 +168,8 @@ export async function sendMessage(req, res) {
     res.flushHeaders();
 
     // 5. Stream the reply from the selected provider, with fallback
+    const thinkingStartedAt = Date.now();
+    let thoughtTimeMs = null;
     const {
       text: fullReply,
       modelUsed,
@@ -176,9 +178,13 @@ export async function sendMessage(req, res) {
       requestedModel,
       contextMessages,
       (chunkText) => {
+        if (thoughtTimeMs === null) {
+          thoughtTimeMs = Date.now() - thinkingStartedAt;
+        }
         res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
       },
     );
+    thoughtTimeMs ??= Date.now() - thinkingStartedAt;
 
     // 6. Save the complete assistant reply
     await saveMessage(
@@ -189,16 +195,21 @@ export async function sendMessage(req, res) {
       MODEL_NAMES[modelUsed] || modelUsed,
       MODEL_NAMES[requestedModel] || requestedModel,
       reasoningDetails,
+      thoughtTimeMs,
     );
 
-    res.write(`data: ${JSON.stringify({ done: true, model: modelUsed })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ done: true, model: modelUsed, thoughtTimeMs })}\n\n`,
+    );
     res.end();
   } catch (err) {
     console.error("sendMessage error:", err);
     if (res.headersSent) {
-      res.write(
-        `data: ${JSON.stringify({ error: "Something went wrong" })}\n\n`,
-      );
+      const message =
+        err.code === "NO_MODEL_RESPONSE"
+          ? err.message
+          : "Something went wrong";
+      res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
       res.end();
     } else {
       res.status(500).json({ error: "Failed to process message" });

@@ -15,7 +15,7 @@ function fromTxt(buffer) {
   const text = clip(buffer.toString("utf-8"));
   if (!text) throw new NoTextError("The text file is empty");
   return { text, totalPages: null, method: "txt" };
-}
+} 
 
 // ---------- IMAGE (png/jpeg) ----------
 async function fromImage(buffer) {

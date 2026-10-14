@@ -14,6 +14,7 @@ export async function saveMessage(
   model = null,
   requestedModel = null,
   reasoningDetails = null,
+  thoughtTimeMs = null,
 ) {
   return Message.create({
     conversationId,
@@ -23,6 +24,7 @@ export async function saveMessage(
     model,
     requestedModel,
     reasoningDetails,
+    thoughtTimeMs,
   });
 }
 

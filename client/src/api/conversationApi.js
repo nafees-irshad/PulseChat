@@ -84,6 +84,7 @@ function processEventBlock(block, onText, onError) {
 function parseEventStream(responseText, onError) {
   let fullText = "";
   let modelUsed = null;
+  let thoughtTimeMs = null;
   const events = responseText.split(/\r?\n\r?\n/);
 
   for (const block of events) {
@@ -98,13 +99,18 @@ function parseEventStream(responseText, onError) {
       const event = JSON.parse(data);
       if (event.error) onError(event.error);
       if (event.text) fullText += event.text;
-      if (event.done && event.model) modelUsed = event.model;
+      if (event.done) {
+        if (event.model) modelUsed = event.model;
+        if (Number.isFinite(event.thoughtTimeMs)) {
+          thoughtTimeMs = event.thoughtTimeMs;
+        }
+      }
     } catch {
       onError("The server returned an invalid message event.");
     }
   }
 
-  return { text: fullText, model: modelUsed };
+  return { text: fullText, model: modelUsed, thoughtTimeMs };
 }
 
 // Send a message and read the server-sent event response.

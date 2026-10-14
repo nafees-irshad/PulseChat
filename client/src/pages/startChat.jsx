@@ -339,7 +339,11 @@ function StartChat() {
           );
         }
 
-        const { text: reply, model: respondingModel } = await startMessage(
+        const {
+          text: reply,
+          model: respondingModel,
+          thoughtTimeMs,
+        } = await startMessage(
           conversation.id,
           prompt,
           (text) => {
@@ -363,6 +367,7 @@ function StartChat() {
                   content: reply || item.content,
                   model: respondingModel || model,
                   requestedModel: model,
+                  thoughtTimeMs,
                 }
               : item,
           ),

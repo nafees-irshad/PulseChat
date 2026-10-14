@@ -1,22 +1,35 @@
 import { createWorker } from "tesseract.js";
 import { definePDFJSModule, getDocumentProxy, renderPageAsImage } from "unpdf";
+import { fileURLToPath } from "node:url";
 
 // renderPageAsImage needs the official PDF.js build, and this must run before other unpdf calls
 await definePDFJSModule(() => import("pdfjs-dist/legacy/build/pdf.mjs"));
 
 export const MAX_OCR_PAGES = 10; // OCR is slow on CPU, so cap how many pages/images we read
-const OCR_LANGUAGES = "eng"; // e.g. "eng+urd" for English + Urdu (downloads language data on first use)
+const OCR_LANGUAGES = "eng";
+const OCR_LANG_PATH = fileURLToPath(new URL("../../", import.meta.url));
 
-// Creates one worker, runs the job, and always frees the worker afterwards
-async function withWorker(job) {
-  const worker = await createWorker(OCR_LANGUAGES);
-  try {
-    return await job(worker);
-  } finally {
-    await worker.terminate();
+let workerPromise;
+
+async function getWorker() {
+  if (!workerPromise) {
+    workerPromise = createWorker(OCR_LANGUAGES, undefined, {
+      langPath: OCR_LANG_PATH,
+      gzip: false,
+    }).catch((error) => {
+      workerPromise = null;
+      throw error;
+    });
   }
+
+  return workerPromise;
 }
 
+// Keep the OCR engine warm between uploads and use the bundled language data.
+async function withWorker(job) {
+  return job(await getWorker());
+}
+ 
 // OCR a scanned PDF: render each page to a PNG, then read the PNG
 export async function ocrPdf(buffer) {
   const pdf = await getDocumentProxy(new Uint8Array(buffer));

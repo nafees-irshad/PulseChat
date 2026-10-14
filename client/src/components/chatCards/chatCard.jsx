@@ -1,9 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import { Check, Code, Copy, FileText, LoaderCircle } from "lucide-react";
+import {
+  BrainCircuit,
+  Check,
+  ChevronRight,
+  Copy,
+  FileText,
+  LoaderCircle,
+} from "lucide-react";
 import hljs from "highlight.js/lib/common";
 import "katex/dist/katex.min.css";
 
@@ -135,6 +142,13 @@ function normalizeMathDelimiters(text) {
     );
 }
 
+function formatThoughtTime(milliseconds) {
+  if (milliseconds < 1000) return "less than a second";
+
+  const seconds = Math.round(milliseconds / 1000);
+  return `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
+}
+
 function CodeBlock({ children, className }) {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || "");
@@ -210,8 +224,20 @@ function CodeBlock({ children, className }) {
 
 function ChatCard({ message, isPending = false }) {
   const [responseCopied, setResponseCopied] = useState(false);
+  const [thinkingSeconds, setThinkingSeconds] = useState(0);
   const isUserMessage = message.role === "user";
   const content = message.content || "";
+
+  useEffect(() => {
+    if (!isPending || content || message.documentStatus) return undefined;
+
+    const startAt = Date.now();
+    const intervalId = window.setInterval(() => {
+      setThinkingSeconds(Math.floor((Date.now() - startAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [content, isPending, message.documentStatus]);
 
   const handleCopyResponse = async () => {
     try {
@@ -225,7 +251,7 @@ function ChatCard({ message, isPending = false }) {
 
   if (isUserMessage) {
     return (
-      <article className="flex w-full justify-end" aria-label="Your message">
+      <article className="flex w-full flex-col items-end" aria-label="Your message">
         <div className="max-w-[min(85%,640px)] rounded-[22px] rounded-br-[6px] bg-[#f0f4f9] px-4.5 py-3 text-left text-[15px] leading-relaxed text-neutral-900 shadow-2xs dark:!bg-[#28282c] dark:!text-[#f4f4f4]">
           {content && (
             <p className="whitespace-pre-wrap break-words">{content}</p>
@@ -278,6 +304,21 @@ function ChatCard({ message, isPending = false }) {
             </div>
           )}
         </div>
+        {content && (
+          <button
+            type="button"
+            onClick={handleCopyResponse}
+            className="mt-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white"
+            title={responseCopied ? "Copied!" : "Copy message"}
+            aria-label={responseCopied ? "Message copied" : "Copy message"}
+          >
+            {responseCopied ? (
+              <Check className="h-4 w-4 text-emerald-500" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </article>
     );
   }
@@ -306,18 +347,40 @@ function ChatCard({ message, isPending = false }) {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 py-2 text-neutral-500 dark:text-neutral-400">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-              </span>
-              <span className="animate-pulse text-[14px] font-medium">
-                Thinking...
+            <div
+              className="flex items-center gap-2.5 py-2 text-[14px] font-medium text-neutral-700 dark:text-neutral-200"
+              role="status"
+              aria-live="polite"
+            >
+              <BrainCircuit
+                aria-hidden="true"
+                className="h-5 w-5 text-[#536dfe]"
+              />
+              <span className="animate-pulse">
+                Thinking for {thinkingSeconds}s
               </span>
             </div>
           )
         ) : (
           <div className="prose prose-neutral dark:prose-invert max-w-none">
+            {!isPending && Number.isFinite(message.thoughtTimeMs) && (
+              <div
+                className="mb-2 inline-flex items-center gap-2 text-[14px] font-medium text-neutral-700 dark:text-neutral-200"
+                aria-label={`Thought for ${formatThoughtTime(message.thoughtTimeMs)}`}
+              >
+                <BrainCircuit
+                  aria-hidden="true"
+                  className="h-5 w-5 text-[#536dfe]"
+                />
+                <span>
+                  Thought for {formatThoughtTime(message.thoughtTimeMs)}
+                </span>
+                <ChevronRight
+                  aria-hidden="true"
+                  className="h-4 w-4 text-neutral-700 dark:text-neutral-300"
+                />
+              </div>
+            )}
             <ReactMarkdown
               remarkPlugins={[
                 remarkGfm,
