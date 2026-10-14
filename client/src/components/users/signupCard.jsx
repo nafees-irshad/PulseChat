@@ -35,7 +35,7 @@ function SignupCard({
         <p className="text-[14px] text-[#777]">
           {isOtpStep
             ? "Confirm your email address to finish creating your account."
-            : "Sign up to get started with Pulse AI."}
+            : "Sign up to get started with PulseAI."}
         </p>
       </div>
 
@@ -107,7 +107,9 @@ function SignupCard({
                 type="password"
                 name="password"
                 autoComplete="new-password"
-                placeholder="Password"
+                placeholder="Password (at least 8 characters)"
+                minLength={8}
+                maxLength={72}
                 value={form.password}
                 onChange={onChange}
                 required

@@ -43,7 +43,7 @@ function AppearancePage() {
             Appearance
           </h1>
           <p className="mt-1 text-[14px] text-[#777]">
-            Choose how PulseChat looks on this device.
+            Choose how PulseAI looks on this device.
           </p>
         </header>
 

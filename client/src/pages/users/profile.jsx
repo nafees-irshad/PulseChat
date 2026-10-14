@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { getProfile } from "../../api/profileApi.js";
+import { changePassword, getProfile } from "../../api/profileApi.js";
 import ProfileCard from "../../components/users/profileCard.jsx";
 
 function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [passwordNotice, setPasswordNotice] = useState("");
+  const [passwordFeedback, setPasswordFeedback] = useState({ message: "", isError: false });
+  const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -41,18 +42,45 @@ function ProfilePage() {
   function handlePasswordChange(event) {
     const { name, value } = event.target;
     setPasswordForm((current) => ({ ...current, [name]: value }));
-    setPasswordNotice("");
+    setPasswordFeedback({ message: "", isError: false });
   }
 
-  function handlePasswordSubmit(event) {
+  async function handlePasswordSubmit(event) {
     event.preventDefault();
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordNotice("The new passwords do not match.");
+    if (!passwordForm.currentPassword) {
+      setPasswordFeedback({ message: "Enter your current password.", isError: true });
       return;
     }
-    setPasswordNotice(
-      "Password updates are not available yet because the server has no password-update endpoint.",
-    );
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordFeedback({ message: "The new passwords do not match.", isError: true });
+      return;
+    }
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordFeedback({ message: "Password must be at least 8 characters long.", isError: true });
+      return;
+    }
+    if (new TextEncoder().encode(passwordForm.newPassword).length > 72) {
+      setPasswordFeedback({ message: "Password must be no more than 72 UTF-8 bytes.", isError: true });
+      return;
+    }
+
+    setIsPasswordSubmitting(true);
+    setPasswordFeedback({ message: "", isError: false });
+    try {
+      const result = await changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordFeedback({ message: result.message, isError: false });
+    } catch (requestError) {
+      setPasswordFeedback({
+        message: requestError.response?.data?.message || "Unable to update your password. Please try again.",
+        isError: true,
+      });
+    } finally {
+      setIsPasswordSubmitting(false);
+    }
   }
 
   return (
@@ -62,7 +90,8 @@ function ProfilePage() {
         isLoading={isLoading}
         error={error}
         passwordForm={passwordForm}
-        passwordNotice={passwordNotice}
+        passwordFeedback={passwordFeedback}
+        isPasswordSubmitting={isPasswordSubmitting}
         onPasswordChange={handlePasswordChange}
         onPasswordSubmit={handlePasswordSubmit}
       />

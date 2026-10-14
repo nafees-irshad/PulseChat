@@ -63,6 +63,28 @@ export async function extractDocument(file, conversationId, onUploadProgress) {
   return response.data;
 }
 
+export async function extractGuestDocument(file, onUploadProgress) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post(
+    API_ENDPOINTS.CONVERSATION.EXTRACT_GUEST_DOCUMENT,
+    formData,
+    {
+      timeout: 0,
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (progress) => {
+        if (!progress.total) return;
+        onUploadProgress?.(
+          Math.min(100, Math.round((progress.loaded / progress.total) * 100)),
+        );
+      },
+    },
+  );
+
+  return response.data;
+}
+
 function processEventBlock(block, onText, onError) {
   const data = block
     .split(/\r?\n/)
@@ -113,21 +135,14 @@ function parseEventStream(responseText, onError) {
   return { text: fullText, model: modelUsed, thoughtTimeMs };
 }
 
-// Send a message and read the server-sent event response.
-export async function startMessage(
-  conversationId,
-  message,
-  onText,
-  model = "groq",
-  documentId,
-) {
+async function streamMessage(endpoint, payload, onText) {
   let pendingText = "";
   let receivedLength = 0;
   let streamError = "";
 
   const response = await api.post(
-    API_ENDPOINTS.CONVERSATION.SEND_MESSAGE,
-    { conversationId, message, model, ...(documentId ? { documentId } : {}) },
+    endpoint,
+    payload,
     {
       responseType: "text",
       timeout: 0,
@@ -151,4 +166,27 @@ export async function startMessage(
   });
   if (streamError) throw new Error(streamError);
   return result;
+}
+
+// Send a message and read the server-sent event response.
+export async function startMessage(
+  conversationId,
+  message,
+  onText,
+  model = "groq",
+  documentId,
+) {
+  return streamMessage(
+    API_ENDPOINTS.CONVERSATION.SEND_MESSAGE,
+    { conversationId, message, model, ...(documentId ? { documentId } : {}) },
+    onText,
+  );
+}
+
+export async function startGuestMessage(messages, model, documentText, onText) {
+  return streamMessage(
+    API_ENDPOINTS.CONVERSATION.SEND_GUEST_MESSAGE,
+    { messages, model, ...(documentText ? { documentText } : {}) },
+    onText,
+  );
 }

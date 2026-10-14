@@ -3,18 +3,22 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   deleteConversation as deleteConversationRequest,
   extractDocument,
+  extractGuestDocument,
   getConversationMessages,
   listConversations,
   renameConversation as renameConversationRequest,
+  startGuestMessage,
   startMessage,
 } from "../api/conversationApi.js";
 import { Code, Lightbulb, PanelLeft, Sparkles, Table } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   ChatInput,
   ChatMessages,
   MessageMinimap,
 } from "../components/chatCards/index.js";
 import ConversationCard from "../components/conversationCard.jsx";
+import { useAuth } from "../context/useAuth.js";
 import { useConversation } from "../context/useConversation.js";
 
 const SUGGESTION_PROMPTS = [
@@ -47,6 +51,7 @@ async function fetchConversationList() {
 }
 
 function StartChat() {
+  const { isAuthenticated } = useAuth();
   const { conversationId: routeConversationId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -61,7 +66,8 @@ function StartChat() {
   const [messages, setMessages] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [isLoadingConversations, setIsLoadingConversations] =
+    useState(isAuthenticated);
   const [loadedConversationId, setLoadedConversationId] = useState(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -78,11 +84,16 @@ function StartChat() {
   const initialPromptHandled = useRef(false);
   const sendPromptRef = useRef(null);
   const chatScrollRef = useRef(null);
+  const guestDocumentTextRef = useRef("");
   const isLoadingMessages =
     Boolean(routeConversationId) &&
     loadedConversationId !== routeConversationId;
+  const visibleMessages =
+    isAuthenticated && !routeConversationId ? [] : messages;
 
   const refreshConversations = useCallback(async () => {
+    if (!isAuthenticated) return [];
+
     try {
       const list = await fetchConversationList();
       setConversations(list);
@@ -96,9 +107,11 @@ function StartChat() {
     } finally {
       setIsLoadingConversations(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) return undefined;
+
     let isActive = true;
     fetchConversationList()
       .then((list) => {
@@ -119,14 +132,10 @@ function StartChat() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!routeConversationId) {
-      setMessages([]);
-      setLoadedConversationId(null);
-      return;
-    }
+    if (!isAuthenticated || !routeConversationId) return;
 
     if (skipHistoryForId.current === routeConversationId) {
       skipHistoryForId.current = null;
@@ -154,7 +163,7 @@ function StartChat() {
     return () => {
       isActive = false;
     };
-  }, [routeConversationId]);
+  }, [isAuthenticated, routeConversationId]);
 
   useEffect(() => {
     if (!routeConversationId) return;
@@ -170,6 +179,7 @@ function StartChat() {
       setIsSidebarOpen(false);
     }
     setMessages([]);
+    guestDocumentTextRef.current = "";
     setLoadedConversationId(null);
     clearConversation();
     navigate("/");
@@ -234,13 +244,13 @@ function StartChat() {
     async (rawPrompt, attachedFile = null) => {
       const prompt = rawPrompt.trim();
       if (!prompt || isSending) return;
-      if (routeConversationId && isLoadingConversations) return;
+      if (isAuthenticated && routeConversationId && isLoadingConversations) return;
 
       const existingConversation = conversations.find(
         (item) => String(item.id) === routeConversationId,
       );
       const shouldCreateConversation =
-        !routeConversationId || !existingConversation;
+        isAuthenticated && (!routeConversationId || !existingConversation);
 
       setError("");
       setIsSending(true);
@@ -252,7 +262,7 @@ function StartChat() {
       setPendingAssistantId(assistantMessageId);
       let isDocumentUploaded = false;
       setMessages((current) => [
-        ...current,
+        ...(isAuthenticated && !routeConversationId ? [] : current),
         {
           id: userMessageId,
           role: "user",
@@ -277,7 +287,7 @@ function StartChat() {
 
       try {
         let conversation = existingConversation || activeConversation;
-        if (shouldCreateConversation) {
+        if (isAuthenticated && shouldCreateConversation) {
           conversation = await startConversation({ message: prompt });
           setConversations((current) => [
             conversation,
@@ -287,33 +297,51 @@ function StartChat() {
           setLoadedConversationId(String(conversation.id));
           skipHistoryForId.current = String(conversation.id);
           navigate(`/chat/${conversation.id}`, { replace: true });
-        } else if (String(conversation?.id) !== routeConversationId) {
+        } else if (
+          isAuthenticated &&
+          String(conversation?.id) !== routeConversationId
+        ) {
           selectConversation(conversation);
         }
 
         let documentId;
         if (attachedFile?.size > 0) {
-          const extractedDocument = await extractDocument(
-            attachedFile,
-            conversation.id,
-            (uploadProgress) => {
-              setMessages((current) =>
-                current.map((item) =>
-                  item.id === userMessageId && item.attachment
-                    ? {
-                        ...item,
-                        attachment: { ...item.attachment, uploadProgress },
-                      }
-                    : item,
-                ),
-              );
-            },
-          );
-          documentId = extractedDocument.documentId;
-          if (!documentId) {
-            throw new Error(
-              "The document service did not return a document ID.",
+          if (!isAuthenticated) guestDocumentTextRef.current = "";
+          const onUploadProgress = (uploadProgress) => {
+            setMessages((current) =>
+              current.map((item) =>
+                item.id === userMessageId && item.attachment
+                  ? {
+                      ...item,
+                      attachment: { ...item.attachment, uploadProgress },
+                    }
+                  : item,
+              ),
             );
+          };
+          if (isAuthenticated) {
+            const extractedDocument = await extractDocument(
+              attachedFile,
+              conversation.id,
+              onUploadProgress,
+            );
+            documentId = extractedDocument.documentId;
+            if (!documentId) {
+              throw new Error(
+                "The document service did not return a document ID.",
+              );
+            }
+          } else {
+            const extractedDocument = await extractGuestDocument(
+              attachedFile,
+              onUploadProgress,
+            );
+            if (typeof extractedDocument.text !== "string") {
+              throw new Error(
+                "The document service did not return extracted text.",
+              );
+            }
+            guestDocumentTextRef.current = extractedDocument.text;
           }
           isDocumentUploaded = true;
           setMessages((current) =>
@@ -339,25 +367,54 @@ function StartChat() {
           );
         }
 
+        const guestHistory = [
+          ...messages
+            .filter(
+              (item) =>
+                (item.role === "user" || item.role === "assistant") &&
+                typeof item.content === "string" &&
+                item.content.trim(),
+            )
+            .map(({ role, content }) => ({
+              role,
+              content: content.slice(-9000),
+            })),
+          { role: "user", content: prompt },
+        ].slice(-10);
         const {
           text: reply,
           model: respondingModel,
           thoughtTimeMs,
-        } = await startMessage(
-          conversation.id,
-          prompt,
-          (text) => {
-            setMessages((current) =>
-              current.map((item) =>
-                item.id === assistantMessageId
-                  ? { ...item, content: item.content + text }
-                  : item,
-              ),
-            );
-          },
-          model,
-          documentId,
-        );
+        } = await (isAuthenticated
+          ? startMessage(
+              conversation.id,
+              prompt,
+              (text) => {
+                setMessages((current) =>
+                  current.map((item) =>
+                    item.id === assistantMessageId
+                      ? { ...item, content: item.content + text }
+                      : item,
+                  ),
+                );
+              },
+              model,
+              documentId,
+            )
+          : startGuestMessage(
+              guestHistory,
+              model,
+              guestDocumentTextRef.current,
+              (text) => {
+                setMessages((current) =>
+                  current.map((item) =>
+                    item.id === assistantMessageId
+                      ? { ...item, content: item.content + text }
+                      : item,
+                  ),
+                );
+              },
+            ));
 
         setMessages((current) =>
           current.map((item) =>
@@ -372,7 +429,7 @@ function StartChat() {
               : item,
           ),
         );
-        await refreshConversations();
+        if (isAuthenticated) await refreshConversations();
       } catch (requestError) {
         setMessages((current) =>
           current
@@ -405,8 +462,10 @@ function StartChat() {
     [
       activeConversation,
       conversations,
+      isAuthenticated,
       isLoadingConversations,
       isSending,
+      messages,
       model,
       navigate,
       refreshConversations,
@@ -430,9 +489,15 @@ function StartChat() {
   }, [location.key, location.pathname, location.state, navigate]);
 
   return (
-    <main className="relative flex h-svh w-full overflow-hidden bg-[#f1f1f2] dark:bg-[#101012]">
+    <main
+      className={`relative flex h-svh w-full overflow-hidden ${
+        isAuthenticated
+          ? "bg-[#f1f1f2] dark:bg-[#101012]"
+          : "bg-white dark:bg-[#212121]"
+      }`}
+    >
       {/* Overlay backdrop — closes sidebar on mobile when tapped */}
-      {isSidebarOpen && (
+      {isAuthenticated && isSidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/20 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
@@ -441,35 +506,37 @@ function StartChat() {
       )}
 
       {/* The sidebar overlays the chat on mobile and sits beside it on desktop. */}
-      <div
-        className={`absolute inset-y-0 left-0 z-30 h-full overflow-visible transition-all duration-300 ease-in-out md:static ${
-          isSidebarOpen
-            ? "w-[min(320px,85vw)] translate-x-0 md:w-[260px]"
-            : "w-0"
-        }`}
-      >
-        <div className="h-full w-[min(320px,85vw)] shrink-0 overflow-visible md:w-[260px]">
-          <ConversationCard
-            isOpen={isSidebarOpen}
-            onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
-            conversations={conversations}
-            activeConversationId={routeConversationId}
-            isSearching={isSearching}
-            searchValue={searchValue}
-            isLoading={isLoadingConversations}
-            isCreating={isCreatingConversation}
-            onNewChat={handleNewChat}
-            onToggleSearch={() => {
-              setIsSearching((current) => !current);
-              setSearchValue("");
-            }}
-            onSearchChange={setSearchValue}
-            onSelectConversation={handleSelectConversation}
-            onRenameConversation={handleRenameConversation}
-            onDeleteConversation={handleDeleteConversation}
-          />
+      {isAuthenticated && (
+        <div
+          className={`absolute inset-y-0 left-0 z-30 h-full overflow-visible transition-all duration-300 ease-in-out md:static ${
+            isSidebarOpen
+              ? "w-[min(320px,85vw)] translate-x-0 md:w-[260px]"
+              : "w-0"
+          }`}
+        >
+          <div className="h-full w-[min(320px,85vw)] shrink-0 overflow-visible md:w-[260px]">
+            <ConversationCard
+              isOpen={isSidebarOpen}
+              onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+              conversations={conversations}
+              activeConversationId={routeConversationId}
+              isSearching={isSearching}
+              searchValue={searchValue}
+              isLoading={isLoadingConversations}
+              isCreating={isCreatingConversation}
+              onNewChat={handleNewChat}
+              onToggleSearch={() => {
+                setIsSearching((current) => !current);
+                setSearchValue("");
+              }}
+              onSearchChange={setSearchValue}
+              onSelectConversation={handleSelectConversation}
+              onRenameConversation={handleRenameConversation}
+              onDeleteConversation={handleDeleteConversation}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Conversation fills the remaining space without a framed panel. */}
       <section
@@ -477,8 +544,42 @@ function StartChat() {
           isSidebarOpen ? "z-0" : "z-40"
         }`}
       >
+        {!isAuthenticated && (
+          <header className="absolute inset-x-0 top-0 z-20 flex h-[68px] items-center justify-between gap-2 px-5 sm:px-8">
+            <button
+              type="button"
+              onClick={handleNewChat}
+              disabled={isSending}
+              className="flex flex-col items-start rounded-md text-left"
+              aria-label="Start a new temporary chat"
+            >
+              <span className="text-[20px] font-semibold tracking-tight text-[#171717] dark:text-white">
+                PulseAI
+              </span>
+              <span className="text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-[11px]">
+                Temporary chat · Not saved to history
+              </span>
+            </button>
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+              <Link
+                to="/login"
+                className="inline-flex h-9 items-center justify-center rounded-full bg-[#111] px-3.5 text-[12px] font-semibold text-white transition hover:bg-[#333] sm:h-11 sm:px-5 sm:text-[14px] dark:bg-white dark:text-[#111] dark:hover:bg-neutral-200"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/signup"
+                className="inline-flex h-9 items-center justify-center rounded-full border border-neutral-300 px-3.5 text-[12px] font-medium text-[#171717] transition hover:bg-neutral-50 sm:h-11 sm:px-5 sm:text-[14px] dark:border-neutral-600 dark:text-white dark:hover:bg-neutral-800"
+              >
+                <span className="sm:hidden">Sign up</span>
+                <span className="hidden sm:inline">Sign up for free</span>
+              </Link>
+            </div>
+          </header>
+        )}
+
         {/* Floating open sidebar button when sidebar is collapsed */}
-        {!isSidebarOpen && (
+        {isAuthenticated && !isSidebarOpen && (
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
@@ -490,15 +591,31 @@ function StartChat() {
           </button>
         )}
 
-        {messages.length === 0 ? (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-10">
-            <h1 className="mb-6 text-center text-[28px] font-semibold tracking-tight text-[#0d0d0d] sm:text-[34px] dark:text-white">
-              What can I help with?
+        {visibleMessages.length === 0 ? (
+          <div
+            className={`flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-10 ${
+              isAuthenticated ? "" : "pt-12"
+            }`}
+          >
+            <h1
+              className={`text-center text-[28px] tracking-tight text-[#0d0d0d] sm:text-[34px] dark:text-white ${
+                isAuthenticated
+                  ? "mb-6 font-semibold"
+                  : "mb-14 font-normal"
+              }`}
+            >
+              {isAuthenticated ? "What can I help with?" : "Where should we begin?"}
             </h1>
-            <div className="w-full max-w-[760px]">
+            <div
+              className={`w-full ${
+                isAuthenticated ? "max-w-[760px]" : "max-w-[960px]"
+              }`}
+            >
               <ChatInput
                 key={routeConversationId || "new"}
                 onSend={sendPrompt}
+                maxLength={isAuthenticated ? undefined : 9000}
+                compact={!isAuthenticated}
                 model={model}
                 onModelChange={setModel}
                 isSending={isSending}
@@ -509,25 +626,28 @@ function StartChat() {
                 )}
               />
 
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                {SUGGESTION_PROMPTS.map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() => sendPrompt(item.prompt)}
-                    className="inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-white/80 px-3.5 py-1.5 text-[12.5px] font-medium text-neutral-600 shadow-2xs transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-[#202024] dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-[#2a2a30] dark:hover:text-white"
-                  >
-                    <item.icon className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500" />
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-              </div>
+              {isAuthenticated && (
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  {SUGGESTION_PROMPTS.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => sendPrompt(item.prompt)}
+                      className="inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-white/80 px-3.5 py-1.5 text-[12.5px] font-medium text-neutral-600 shadow-2xs transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-[#202024] dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-[#2a2a30] dark:hover:text-white"
+                    >
+                      <item.icon className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500" />
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : (
           <>
             <ChatMessages
               ref={chatScrollRef}
+              className={!isAuthenticated ? "pt-20" : ""}
               title={
                 activeConversation?.title ||
                 conversations.find(
@@ -536,7 +656,7 @@ function StartChat() {
                 )?.title ||
                 ""
               }
-              messages={messages}
+              messages={visibleMessages}
               isLoading={isLoadingMessages}
               isSending={isSending}
               pendingAssistantId={pendingAssistantId}
@@ -550,6 +670,7 @@ function StartChat() {
             <ChatInput
               key={routeConversationId || "new"}
               onSend={sendPrompt}
+              maxLength={isAuthenticated ? undefined : 9000}
               model={model}
               onModelChange={setModel}
               isSending={isSending}
@@ -563,14 +684,14 @@ function StartChat() {
         )}
 
         {/* Floating Help Circle at bottom right */}
-        <button
+        {isAuthenticated && <button
           type="button"
           className="absolute right-4 bottom-4 z-10 grid h-7 w-7 place-items-center rounded-full border border-neutral-300/80 bg-white text-[13px] font-medium text-neutral-600 shadow-2xs transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-[#2a2a2a] dark:text-neutral-300 dark:hover:bg-[#333]"
           aria-label="Help"
           title="Help"
         >
           ?
-        </button>
+        </button>}
       </section>
     </main>
   );

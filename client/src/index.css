@@ -300,7 +300,7 @@ textarea {
   font-family: inherit !important;
 }
 
-/* Light Mode Syntax Highlight Tokens - matching ChatGPT */
+/* Light Mode Syntax Highlight Tokens - matching PulseAI */
 .hljs-keyword,
 .hljs-operator,
 .hljs-selector-tag {
@@ -365,7 +365,7 @@ textarea {
   color: #64748b !important;
 }
 
-/* Dark Mode Overrides: ChatGPT dark rounded code container */
+/* Dark Mode Overrides: PulseAI dark rounded code container */
 :root[data-theme="dark"] .code-block-container {
   background-color: #2f2f2f !important;
   border: none !important;

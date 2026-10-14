@@ -11,6 +11,7 @@ const ChatMessages = forwardRef(function ChatMessages(
     isSending = false,
     pendingAssistantId = null,
     onSelectPrompt,
+    className = "",
   },
   scrollRef,
 ) {
@@ -23,7 +24,7 @@ const ChatMessages = forwardRef(function ChatMessages(
   return (
     <div
       ref={scrollRef}
-      className="chat-scroll min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 sm:px-8"
+      className={`chat-scroll min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 sm:px-8 ${className}`}
     >
       {isLoading ? (
         <div className="flex h-full items-center justify-center text-[13px] text-[#888] dark:text-neutral-400">

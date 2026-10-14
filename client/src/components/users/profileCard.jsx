@@ -3,7 +3,8 @@ function ProfileCard({
   isLoading,
   error,
   passwordForm,
-  passwordNotice,
+  passwordFeedback,
+  isPasswordSubmitting,
   onPasswordChange,
   onPasswordSubmit,
 }) {
@@ -92,7 +93,7 @@ function ProfileCard({
           Update password
         </h2>
         <p className="mb-5 text-[13px] text-[#777]">
-          Password changes require a server endpoint that is not available yet.
+          Use your current password to confirm this change.
         </p>
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={onPasswordSubmit}>
           <label className="flex flex-col gap-1.5 text-[13px] font-medium text-[#444]">
@@ -103,6 +104,7 @@ function ProfileCard({
               name="currentPassword"
               autoComplete="current-password"
               value={passwordForm.currentPassword}
+              required
               onChange={onPasswordChange}
             />
           </label>
@@ -115,6 +117,9 @@ function ProfileCard({
               name="newPassword"
               autoComplete="new-password"
               value={passwordForm.newPassword}
+              minLength={8}
+              maxLength={72}
+              required
               onChange={onPasswordChange}
             />
           </label>
@@ -126,19 +131,24 @@ function ProfileCard({
               name="confirmPassword"
               autoComplete="new-password"
               value={passwordForm.confirmPassword}
+              required
               onChange={onPasswordChange}
             />
           </label>
-          {passwordNotice && (
-            <p className="text-[13px] text-[#777] sm:col-span-2" role="status">
-              {passwordNotice}
+          {passwordFeedback.message && (
+            <p
+              className={`text-[13px] sm:col-span-2 ${passwordFeedback.isError ? "text-red-600" : "text-emerald-700"}`}
+              role={passwordFeedback.isError ? "alert" : "status"}
+            >
+              {passwordFeedback.message}
             </p>
           )}
           <button
             className="h-10 w-fit rounded-lg bg-[#171717] px-4 text-[13px] font-medium text-white transition hover:bg-[#333] sm:col-span-2"
             type="submit"
+            disabled={isPasswordSubmitting}
           >
-            Update password
+            {isPasswordSubmitting ? "Updating..." : "Update password"}
           </button>
         </form>
       </section>

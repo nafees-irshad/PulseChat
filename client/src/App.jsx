@@ -3,35 +3,25 @@ import Footer from "./components/footer.jsx";
 import Logo from "./components/logo.jsx";
 import ProtectedRoute from "./components/protectedRoute.jsx";
 import PublicRoute from "./components/publicRoute.jsx";
-import { useAuth } from "./context/useAuth.js";
 import LoginPage from "./pages/users/login.jsx";
+import ForgotPasswordPage from "./pages/users/forgotPassword.jsx";
 import ProfilePage from "./pages/users/profile.jsx";
 import SignupPage from "./pages/users/signup.jsx";
 import AppearancePage from "./pages/users/appearance.jsx";
 import StartChat from "./pages/startChat.jsx";
 
 function App() {
-  const { isAuthenticated } = useAuth();
-
   return (
     <Logo>
       <Routes>
-        {/* Protected routes - load conversation list & chat interface on home page after login */}
+        {/* Home is available without an account; conversation history remains private. */}
         <Route
           path="/"
-          element={
-            <ProtectedRoute>
-              <StartChat />
-            </ProtectedRoute>
-          }
+          element={<StartChat />}
         />
         <Route
           path="/chat"
-          element={
-            <ProtectedRoute>
-              <StartChat />
-            </ProtectedRoute>
-          }
+          element={<StartChat />}
         />
         <Route
           path="/chat/:conversationId"
@@ -68,6 +58,14 @@ function App() {
           }
         />
         <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPasswordPage />
+            </PublicRoute>
+          }
+        />
+        <Route
           path="/signup"
           element={
             <PublicRoute>
@@ -76,10 +74,10 @@ function App() {
           }
         />
 
-        {/* Any unauthorized or unmatched URL -> navigate to /login if not logged in, or / if logged in */}
+        {/* Unknown URLs return to the public home page. */}
         <Route
           path="*"
-          element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
+          element={<Navigate to="/" replace />}
         />
       </Routes>
       <Footer />

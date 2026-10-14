@@ -94,3 +94,34 @@ export async function uploadDocument(req, res) {
     res.status(500).json({ error: "Failed to process the file" });
   }
 }
+
+// POST /api/gpt/guest/documents/extract (extracts without creating a DB record)
+export async function extractGuestDocument(req, res) {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Attach a file in the "file" field' });
+  }
+
+  try {
+    const mimetype = req.file.originalname.toLowerCase().endsWith(".txt")
+      ? "text/plain"
+      : req.file.mimetype;
+    const result = await extractTextFromFile(req.file.buffer, mimetype);
+    return res.status(200).json({
+      text: result.text,
+      originalName: req.file.originalname,
+      totalPages: result.totalPages,
+      method: result.method,
+    });
+  } catch (err) {
+    if (err instanceof NoTextError) {
+      console.warn("No text could be extracted from temporary upload:", err.message);
+      return res.status(422).json({
+        error:
+          "No readable text could be extracted from this file, even with OCR. Try a clearer scan or a different file.",
+        details: err.message,
+      });
+    }
+    console.error("extractGuestDocument error:", err);
+    return res.status(500).json({ error: "Failed to process the file" });
+  }
+}

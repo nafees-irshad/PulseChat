@@ -26,6 +26,81 @@ const MODEL_NAMES = {
 };
 import { withDocumentContext } from "../service/External/pdfService.js";
 
+// POST /api/gpt/guest/chat (SSE streaming endpoint; deliberately does not persist messages)
+export async function sendGuestMessage(req, res) {
+  const { messages, model, documentText } = req.body ?? {};
+  if (
+    !Array.isArray(messages) ||
+    messages.length === 0 ||
+    messages.length > 10 ||
+    messages.some(
+      (message) =>
+        !message ||
+        !["user", "assistant"].includes(message.role) ||
+        typeof message.content !== "string" ||
+        message.content.length > 9000,
+    ) ||
+    messages[messages.length - 1]?.role !== "user"
+  ) {
+    return res.status(400).json({ error: "A valid temporary chat message is required" });
+  }
+  if (
+    documentText !== undefined &&
+    (typeof documentText !== "string" || documentText.length > 30000)
+  ) {
+    return res.status(400).json({ error: "The extracted document is too large" });
+  }
+
+  const requestedModel = model || DEFAULT_MODEL;
+  if (!getProvider(requestedModel)) {
+    return res
+      .status(400)
+      .json({ error: `Unsupported model: ${requestedModel}` });
+  }
+
+  try {
+    const safeMessages = messages.map(({ role, content }) => ({ role, content }));
+    const contextMessages = documentText
+      ? withDocumentContext(safeMessages, documentText)
+      : safeMessages;
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const thinkingStartedAt = Date.now();
+    let thoughtTimeMs = null;
+    const { text, modelUsed } = await streamWithFallback(
+      requestedModel,
+      contextMessages,
+      (chunkText) => {
+        if (thoughtTimeMs === null) {
+          thoughtTimeMs = Date.now() - thinkingStartedAt;
+        }
+        res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+      },
+    );
+    thoughtTimeMs ??= Date.now() - thinkingStartedAt;
+    res.write(
+      `data: ${JSON.stringify({ done: true, model: modelUsed, thoughtTimeMs })}\n\n`,
+    );
+    res.end();
+  } catch (err) {
+    console.error("sendGuestMessage error:", err);
+    if (res.headersSent) {
+      const message =
+        err.code === "NO_MODEL_RESPONSE"
+          ? err.message
+          : "Something went wrong";
+      res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+      res.end();
+    } else {
+      res.status(500).json({ error: "Failed to process message" });
+    }
+  }
+}
+
 // POST /api/conversations
 export async function startConversation(req, res) {
   try {

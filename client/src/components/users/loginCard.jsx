@@ -19,7 +19,7 @@ function LoginCard({
         >
           Log in
         </h1>
-        <p className="text-[14px] text-[#777]">Welcome back to Pulse AI.</p>
+        <p className="text-[14px] text-[#777]">Welcome back to PulseAI.</p>
       </div>
 
       <form className="space-y-3" onSubmit={onSubmit}>
@@ -52,6 +52,14 @@ function LoginCard({
           onChange={onChange}
           required
         />
+        <div className="text-right">
+          <Link
+            className="text-[13px] font-medium text-[#555] underline underline-offset-2 hover:text-black"
+            to="/forgot-password"
+          >
+            Forgot your password?
+          </Link>
+        </div>
 
         {error && (
           <p className="text-left text-[13px] text-red-600" role="alert">
@@ -108,7 +116,7 @@ function LoginCard({
       </div>
 
       <p className="mt-5 text-center text-[13px] text-[#777]">
-        New to Pulse AI?{" "}
+        New to PulseAI?{" "}
         <Link className="font-medium text-[#171717] underline" to="/signup">
           Sign up
         </Link>

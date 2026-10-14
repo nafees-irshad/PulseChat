@@ -5,10 +5,49 @@ import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
 import { randomBytes, randomInt } from "node:crypto";
 import dotenv from "dotenv";
-import { generateOtpEmailHtml } from "../utils/mailTemplete.js";
+import {
+  generateOtpEmailHtml,
+  generatePasswordResetOtpEmailHtml,
+} from "../utils/mailTemplete.js";
 dotenv.config();
 
 export const generateOtp = () => String(randomInt(100000, 1000000));
+
+async function sendPasswordResetOtp(email, otp) {
+  const smtpUser = process.env.SMTP_USER || "nafees.ahmed2189@gmail.com";
+  const smtpPassword = process.env.SMTP_PASS;
+  if (!smtpPassword) {
+    throw new Error(
+      "SMTP_PASS must be configured to send password reset emails.",
+    );
+  }
+
+  const port = Number(process.env.SMTP_PORT || 465);
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port,
+    secure: port === 465,
+    auth: { user: smtpUser, pass: smtpPassword },
+  });
+
+  await transporter.sendMail({
+    from: `"PulseChat" <${smtpUser}>`,
+    to: email,
+    subject: "Your PulseChat password reset code",
+    text: `Your PulseChat password reset code is ${otp}. It expires in 10 minutes.`,
+    html: generatePasswordResetOtpEmailHtml(otp),
+  });
+}
+
+function passwordValidationError(password) {
+  if (typeof password !== "string" || password.length < 8) {
+    return "Password must be at least 8 characters long.";
+  }
+  if (Buffer.byteLength(password, "utf8") > 72) {
+    return "Password must be no more than 72 UTF-8 bytes.";
+  }
+  return null;
+}
 
 async function sendVerificationOtp(email, otp) {
   const smtpUser = process.env.SMTP_USER || "nafees.ahmed2189@gmail.com";
@@ -59,6 +98,10 @@ export const createUser = async (req, res) => {
   try {
     if (!name || !email || !password) {
       return res.status(400).json({ msg: "all fields are required" });
+    }
+    const passwordError = passwordValidationError(password);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
     }
     if (!process.env.SMTP_PASS) {
       return res.status(503).json({
@@ -289,6 +332,135 @@ export const loginWithGoogle = async (req, res) => {
       .json({ message: "Unable to complete Google sign-in." });
   }
 };
+
+
+export async function changePassword(req, res) {
+  const { currentPassword, newPassword } = req.body ?? {};
+  if (typeof currentPassword !== "string" || !currentPassword) {
+    return res.status(400).json({ message: "Current password is required." });
+  }
+  const passwordError = passwordValidationError(newPassword);
+  if (passwordError) return res.status(400).json({ message: passwordError });
+
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    await user.update({
+      password: await bcrypt.hash(newPassword, 10),
+      otpHash: null,
+      otpExpiresAt: null,
+    });
+    return res.status(200).json({ message: "Password updated successfully." });
+  } catch (error) {
+    console.error("changePassword error:", error);
+    return res.status(500).json({ message: "Unable to update your password." });
+  }
+}
+
+export async function requestPasswordReset(req, res) {
+  const email =
+    typeof req.body?.email === "string" ? req.body.email.trim() : "";
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ message: "Enter a valid email address." });
+  }
+  if (!process.env.SMTP_PASS) {
+    return res.status(503).json({
+      message: "Email delivery is unavailable. Please try again later.",
+    });
+  }
+
+  try {
+    const user = await User.findOne({ where: { email, isVerified: true } });
+    const message =
+      "If a verified account exists for that email, a reset code has been sent.";
+    if (!user) return res.status(200).json({ message });
+
+    const otp = generateOtp();
+    const otpHash = await bcrypt.hash(otp, 10);
+    await user.update({
+      otpHash,
+      otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+
+    try {
+      await sendPasswordResetOtp(user.email, otp);
+    } catch (error) {
+      await User.update(
+        { otpHash: null, otpExpiresAt: null },
+        { where: { id: user.id, otpHash } },
+      );
+      throw error;
+    }
+
+    return res.status(200).json({ message });
+  } catch (error) {
+    console.error("requestPasswordReset error:", error);
+    return res.status(500).json({
+      message: "Unable to send a reset code. Please try again later.",
+    });
+  }
+}
+
+export async function resetPassword(req, res) {
+  const { email, otp, newPassword } = req.body ?? {};
+  if (
+    typeof email !== "string" ||
+    !email.trim() ||
+    typeof otp !== "string" ||
+    !/^\d{6}$/.test(otp)
+  ) {
+    return res.status(400).json({
+      message: "A valid email and 6-digit reset code are required.",
+    });
+  }
+  const passwordError = passwordValidationError(newPassword);
+  if (passwordError) return res.status(400).json({ message: passwordError });
+
+  try {
+    const user = await User.findOne({
+      where: { email: email.trim(), isVerified: true },
+    });
+    const isOtpActive =
+      user?.otpHash &&
+      user.otpExpiresAt &&
+      new Date(user.otpExpiresAt).getTime() > Date.now();
+    const isOtpValid = isOtpActive && (await bcrypt.compare(otp, user.otpHash));
+
+    if (!isOtpValid) {
+      return res.status(400).json({ message: "The reset code is invalid or has expired. Request a new code and try again." });
+    }
+
+    const [updatedCount] = await User.update(
+      {
+        password: await bcrypt.hash(newPassword, 10),
+        otpHash: null,
+        otpExpiresAt: null,
+      },
+      { where: { id: user.id, otpHash: user.otpHash } },
+    );
+    if (!updatedCount) {
+      return res.status(400).json({
+        message:
+          "The reset code is invalid or has expired. Request a new code and try again.",
+      });
+    }
+    return res.status(200).json({
+      message: "Password reset successfully. You can now log in.",
+    });
+  } catch (error) {
+    console.error("resetPassword error:", error);
+    return res.status(500).json({ message: "Unable to reset your password." });
+  }
+}
 
 // GET /api/profile
 export async function getProfile(req, res) {

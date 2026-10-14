@@ -104,7 +104,7 @@ function HomeCard() {
           onSubmit={handleSubmit}
         >
           <label className="sr-only" htmlFor="home-prompt">
-            Ask Pulse AI
+            Ask PulseAI
           </label>
           <textarea
             ref={inputRef}

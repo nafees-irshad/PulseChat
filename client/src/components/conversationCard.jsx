@@ -111,10 +111,10 @@ function ConversationCard({
         <Link
           to="/"
           className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[15px] font-semibold tracking-tight text-[#0d0d0d] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
-          aria-label="Pulse AI Home"
-          title="Pulse AI"
+          aria-label="PulseAI home"
+          title="PulseAI"
         >
-          <span>Pulse AI</span>
+          <span>PulseAI</span>
           <ChevronDown className="h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
         </Link>
 

@@ -5,6 +5,9 @@ const API_ENDPOINTS = {
     LOGIN: "/user/login",
     GOOGLE: "/user/google",
     PROFILE: "/user/profile",
+    CHANGE_PASSWORD: "/user/password",
+    FORGOT_PASSWORD: "/user/forgot-password",
+    RESET_PASSWORD: "/user/reset-password",
   },
   CONVERSATION: {
     START_CONVERSATION: "gpt/conversations",
@@ -13,7 +16,9 @@ const API_ENDPOINTS = {
     DELETE_CONVERSATION: (id) => `gpt/conversations/${id}`,
     GET_MESSAGES: (id) => `gpt/conversations/${id}/messages`,
     EXTRACT_DOCUMENT: "gpt/documents/extract/",
+    EXTRACT_GUEST_DOCUMENT: "gpt/guest/documents/extract",
     SEND_MESSAGE: "gpt/chat",
+    SEND_GUEST_MESSAGE: "gpt/guest/chat",
   },
 };
 

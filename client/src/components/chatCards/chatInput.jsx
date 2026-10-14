@@ -29,7 +29,9 @@ function ChatInput({
   onModelChange,
   isSending = false,
   error = "",
-  placeholder = "Ask Pulse AI",
+  placeholder = "Ask PulseAI",
+  maxLength,
+  compact = false,
   disabled = false,
 }) {
   const [draft, setDraft] = useState("");
@@ -169,15 +171,21 @@ function ChatInput({
       {/* Main Prompt Card - Unified shape */}
       <form
         onSubmit={handleSubmit}
-        className="mx-auto flex w-full max-w-[760px] flex-col rounded-[26px] border border-neutral-300/80 bg-[#f4f4f4] px-4 pt-3.5 pb-2.5 shadow-xs transition-colors duration-150 focus-within:border-neutral-400 focus-within:shadow-md dark:border-neutral-700/60 dark:bg-[#202123] dark:focus-within:border-neutral-500"
+        className={`mx-auto flex w-full ${
+          compact
+            ? "relative min-h-[112px] max-w-[840px] flex-col rounded-[26px] px-5 pt-4 pb-2.5 shadow-lg"
+            : "max-w-[760px] flex-col rounded-[26px] px-4 pt-3.5 pb-2.5 shadow-xs"
+        } border border-neutral-300/80 bg-[#f4f4f4] transition-colors duration-150 focus-within:border-neutral-400 focus-within:shadow-md dark:border-neutral-700/60 dark:bg-[#202123] dark:focus-within:border-neutral-500`}
       >
         <label className="sr-only" htmlFor="chat-prompt-textarea">
-          Ask Pulse AI
+          Ask PulseAI
         </label>
 
         {/* Selected file attachment badge */}
         {selectedFile && (
-          <div className="mb-2 flex max-w-full items-center gap-2 self-start rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] text-neutral-700 dark:border-neutral-700 dark:bg-[#252525] dark:text-neutral-200">
+          <div
+            className="mb-2 flex max-w-full items-center gap-2 self-start rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] text-neutral-700 dark:border-neutral-700 dark:bg-[#252525] dark:text-neutral-200"
+          >
             <FileText
               aria-hidden="true"
               className="h-4 w-4 shrink-0 text-neutral-500"
@@ -211,13 +219,24 @@ function ChatInput({
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
+          maxLength={maxLength}
           disabled={isSending || disabled}
           rows={1}
-          className="min-h-[26px] w-full resize-none bg-transparent px-1 text-[15px] leading-relaxed text-[#0d0d0d] outline-none placeholder:text-neutral-400 dark:text-[#ececec] dark:placeholder:text-neutral-500"
+          className={`w-full resize-none bg-transparent text-[#0d0d0d] leading-relaxed outline-none placeholder:text-neutral-400 dark:text-[#ececec] dark:placeholder:text-neutral-500 ${
+            compact
+              ? "min-h-[32px] px-0 py-1 text-[16px]"
+              : "min-h-[26px] px-1 text-[15px]"
+          }`}
         />
 
         {/* Bottom row toolbar */}
-        <div className="mt-2 flex items-center justify-between pt-0.5">
+        <div
+          className={`flex items-center justify-between ${
+            compact
+              ? "mt-auto w-full pt-2"
+              : "mt-2 pt-0.5"
+          }`}
+        >
           {/* Left: + (Attach) button */}
           <button
             type="button"
@@ -332,12 +351,13 @@ function ChatInput({
       </form>
 
       {/* Footer below chat input box */}
-      <footer className="mt-2.5 text-center text-[12px] text-neutral-400 select-none dark:text-neutral-500">
-        AI-generated content may not be accurate.
-      </footer>
+      {!compact && (
+        <footer className="mt-2.5 text-center text-[12px] text-neutral-400 select-none dark:text-neutral-500">
+          PulseAI can make mistakes. Check important info.
+        </footer>
+      )}
     </div>
   );
 }
 
 export default ChatInput;
-

@@ -8,7 +8,7 @@ function Footer() {
 
   return (
     <footer className="shrink-0 pb-1 text-center text-[11px] text-[#a0a0a0]">
-      © {new Date().getFullYear()} Pulse AI
+      © {new Date().getFullYear()} PulseAI
     </footer>
   );
 }

@@ -6,3 +6,9 @@ export async function getProfile() {
 
   return response.data;
 }
+
+export async function changePassword(data) {
+  const response = await api.patch(API_ENDPOINTS.USERS.CHANGE_PASSWORD, data);
+
+  return response.data;
+}

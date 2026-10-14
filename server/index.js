@@ -5,6 +5,7 @@ import cors from "cors";
 
 const app = express();
 dotenv.config();
+app.use("/api/gpt/guest/chat", express.json({ limit: "512kb" }));
 app.use(express.json());
 
 const allowedOrigins = [
