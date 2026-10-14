@@ -12,9 +12,12 @@ module.exports = {
       await queryInterface.addIndex(
         "messages",
         [
-          "conversationId",
           {
-            name: "createdAt",
+            attribute: "conversationId",
+            order: "ASC",
+          },
+          {
+            attribute: "createdAt",
             order: "DESC",
           },
         ],
