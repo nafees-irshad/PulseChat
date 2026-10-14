@@ -14,23 +14,21 @@ function App() {
   return (
     <Logo>
       <Routes>
-        {/* Home is available without an account; conversation history remains private. */}
         <Route
           path="/"
           element={<StartChat />}
-        />
-        <Route
-          path="/chat"
-          element={<StartChat />}
-        />
-        <Route
-          path="/chat/:conversationId"
-          element={
-            <ProtectedRoute>
-              <StartChat />
-            </ProtectedRoute>
-          }
-        />
+        >
+          {/* Keep the chat page mounted while switching between home and a conversation. */}
+          <Route path="chat" />
+          <Route
+            path="chat/:conversationId"
+            element={
+              <ProtectedRoute>
+                <></>
+              </ProtectedRoute>
+            }
+          />
+        </Route>
         <Route
           path="/profile"
           element={

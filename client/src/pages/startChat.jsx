@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   deleteConversation as deleteConversationRequest,
   extractDocument,
@@ -50,6 +50,17 @@ async function fetchConversationList() {
   return Array.isArray(result?.conversations) ? result.conversations : [];
 }
 
+function upsertMessage(messages, messageId, update, initialMessage) {
+  const hasMessage = messages.some((message) => message.id === messageId);
+  if (hasMessage) {
+    return messages.map((message) =>
+      message.id === messageId ? update(message) : message,
+    );
+  }
+
+  return [...messages, update(initialMessage)];
+}
+
 function StartChat() {
   const { isAuthenticated } = useAuth();
   const { conversationId: routeConversationId } = useParams();
@@ -80,17 +91,14 @@ function StartChat() {
       window.matchMedia("(min-width: 768px)").matches,
   );
 
-  const skipHistoryForId = useRef(null);
   const initialPromptHandled = useRef(false);
   const sendPromptRef = useRef(null);
   const chatScrollRef = useRef(null);
   const guestDocumentTextRef = useRef("");
+  const locallyCompletedConversationIdRef = useRef(null);
   const isLoadingMessages =
     Boolean(routeConversationId) &&
     loadedConversationId !== routeConversationId;
-  const visibleMessages =
-    isAuthenticated && !routeConversationId ? [] : messages;
-
   const refreshConversations = useCallback(async () => {
     if (!isAuthenticated) return [];
 
@@ -135,12 +143,15 @@ function StartChat() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated || !routeConversationId) return;
-
-    if (skipHistoryForId.current === routeConversationId) {
-      skipHistoryForId.current = null;
+    if (!isAuthenticated || !routeConversationId) {
+      locallyCompletedConversationIdRef.current = null;
       return;
     }
+
+    if (locallyCompletedConversationIdRef.current === routeConversationId) {
+      return;
+    }
+    locallyCompletedConversationIdRef.current = null;
 
     let isActive = true;
 
@@ -261,6 +272,7 @@ function StartChat() {
       const assistantMessageId = `local-assistant-${timestamp}`;
       setPendingAssistantId(assistantMessageId);
       let isDocumentUploaded = false;
+      let createdConversationId = null;
       setMessages((current) => [
         ...(isAuthenticated && !routeConversationId ? [] : current),
         {
@@ -294,9 +306,7 @@ function StartChat() {
             ...current.filter((item) => item.id !== conversation.id),
           ]);
           selectConversation(conversation);
-          setLoadedConversationId(String(conversation.id));
-          skipHistoryForId.current = String(conversation.id);
-          navigate(`/chat/${conversation.id}`, { replace: true });
+          createdConversationId = String(conversation.id);
         } else if (
           isAuthenticated &&
           String(conversation?.id) !== routeConversationId
@@ -391,10 +401,18 @@ function StartChat() {
               prompt,
               (text) => {
                 setMessages((current) =>
-                  current.map((item) =>
-                    item.id === assistantMessageId
-                      ? { ...item, content: item.content + text }
-                      : item,
+                  upsertMessage(
+                    current,
+                    assistantMessageId,
+                    (item) => ({
+                      ...item,
+                      content: (item.content || "") + text,
+                    }),
+                    {
+                      id: assistantMessageId,
+                      role: "assistant",
+                      content: "",
+                    },
                   ),
                 );
               },
@@ -407,29 +425,51 @@ function StartChat() {
               guestDocumentTextRef.current,
               (text) => {
                 setMessages((current) =>
-                  current.map((item) =>
-                    item.id === assistantMessageId
-                      ? { ...item, content: item.content + text }
-                      : item,
+                  upsertMessage(
+                    current,
+                    assistantMessageId,
+                    (item) => ({
+                      ...item,
+                      content: (item.content || "") + text,
+                    }),
+                    {
+                      id: assistantMessageId,
+                      role: "assistant",
+                      content: "",
+                    },
                   ),
                 );
               },
             ));
 
         setMessages((current) =>
-          current.map((item) =>
-            item.id === assistantMessageId
-              ? {
-                  ...item,
-                  content: reply || item.content,
-                  model: respondingModel || model,
-                  requestedModel: model,
-                  thoughtTimeMs,
-                }
-              : item,
+          upsertMessage(
+            current,
+            assistantMessageId,
+            (item) => ({
+              ...item,
+              content: reply || item.content,
+              model: respondingModel || model,
+              requestedModel: model,
+              thoughtTimeMs,
+            }),
+            {
+              id: assistantMessageId,
+              role: "assistant",
+              content: reply,
+              model: respondingModel || model,
+              requestedModel: model,
+              thoughtTimeMs,
+            },
           ),
         );
-        if (isAuthenticated) await refreshConversations();
+        if (createdConversationId) {
+          locallyCompletedConversationIdRef.current = createdConversationId;
+          setLoadedConversationId(createdConversationId);
+          navigate(`/chat/${createdConversationId}`, { replace: true });
+        } else if (isAuthenticated) {
+          await refreshConversations();
+        }
       } catch (requestError) {
         setMessages((current) =>
           current
@@ -591,7 +631,7 @@ function StartChat() {
           </button>
         )}
 
-        {visibleMessages.length === 0 ? (
+        {messages.length === 0 ? (
           <div
             className={`flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-10 ${
               isAuthenticated ? "" : "pt-12"
@@ -656,7 +696,7 @@ function StartChat() {
                 )?.title ||
                 ""
               }
-              messages={visibleMessages}
+              messages={messages}
               isLoading={isLoadingMessages}
               isSending={isSending}
               pendingAssistantId={pendingAssistantId}
@@ -692,6 +732,7 @@ function StartChat() {
         >
           ?
         </button>}
+        <Outlet />
       </section>
     </main>
   );
