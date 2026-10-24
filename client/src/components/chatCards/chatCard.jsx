@@ -19,9 +19,9 @@ const modelNames = {
   groq: "Groq",
   gemini: "Gemini",
   glm: "Dots Studio",
-  gemma: "Gemma 4",
   apodex: "Apodex 1.1 Mini",
   nemotron: "Nemotron 3 Super 120B",
+  leanstral: "Leanstral 1.5",
 };
 
 const LANGUAGE_LABELS = {
@@ -189,7 +189,7 @@ function CodeBlock({ children, className }) {
   };
 
   return (
-    <div className="code-block-container my-4 overflow-hidden rounded-[20px] bg-[#e9e9eb] dark:bg-[#2f2f2f]">
+    <div className="code-block-container my-4 overflow-hidden rounded-[16px] bg-[#e9e9eb] dark:bg-[#171717]">
       <div className="code-block-header flex items-center justify-between px-5 pt-3.5 pb-2 text-[13px]">
         <span className="flex items-center gap-2">
           <span className="font-mono text-[13px] font-bold text-[#0d0d0d] dark:text-white">
@@ -319,7 +319,7 @@ function ChatCard({ message, isPending = false }) {
           </div>
         )}
         {content && (
-          <div className="max-w-[min(85%,640px)] rounded-[22px] rounded-br-[6px] bg-[#f0f4f9] px-4.5 py-3 text-left text-[15px] leading-relaxed text-neutral-900 shadow-2xs dark:!bg-[#28282c] dark:!text-[#f4f4f4]">
+          <div className="max-w-[min(85%,640px)] rounded-[22px] rounded-br-[6px] bg-[#f0f4f9] px-4.5 py-3 text-left text-[15px] leading-relaxed text-neutral-900 shadow-2xs dark:!bg-[#212121] dark:!text-[#ececec]">
             <p className="whitespace-pre-wrap break-words">{content}</p>
           </div>
         )}
@@ -453,7 +453,7 @@ function ChatCard({ message, isPending = false }) {
                 ),
                 li: ({ ...props }) => <li className="pl-1" {...props} />,
                 table: ({ children, ...props }) => (
-                  <div className="my-5 w-full max-w-full overflow-hidden rounded-xl border border-neutral-300 bg-white shadow-xs dark:border-neutral-700 dark:bg-[#18191f]">
+                  <div className="my-5 w-full max-w-full overflow-hidden rounded-xl border border-neutral-300 bg-white shadow-xs dark:border-neutral-800 dark:bg-[#141414]">
                     <div className="table-scroll w-full overflow-x-auto">
                       <table
                         className="w-full min-w-full border-collapse text-left text-[14px]"
@@ -466,7 +466,7 @@ function ChatCard({ message, isPending = false }) {
                 ),
                 thead: ({ children, ...props }) => (
                   <thead
-                    className="border-b border-neutral-300 bg-neutral-50/90 text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-200"
+                    className="border-b border-neutral-300 bg-neutral-50/90 text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-200"
                     {...props}
                   >
                     {children}
@@ -482,7 +482,7 @@ function ChatCard({ message, isPending = false }) {
                 ),
                 tbody: ({ children, ...props }) => (
                   <tbody
-                    className="divide-y divide-neutral-300 dark:divide-neutral-700"
+                    className="divide-y divide-neutral-300 dark:divide-neutral-800"
                     {...props}
                   >
                     {children}

@@ -2,7 +2,11 @@ import { useLocation } from "react-router-dom";
 
 function Footer() {
   const location = useLocation();
-  if (location.pathname.startsWith("/chat") || location.pathname === "/") {
+  if (
+    location.pathname.startsWith("/chat") ||
+    location.pathname === "/" ||
+    location.pathname.startsWith("/library")
+  ) {
     return null;
   }
 

@@ -20,9 +20,9 @@ const MODEL_NAMES = {
   gemini: "Gemini Flash",
   groq: "GPT-oss",
   glm: "Dots_Studio",
-  gemma: "Gemma 4",
   apodex: "Apodex 1.1 Mini",
   nemotron: "Nemotron 3 Super 120B",
+  leanstral: "Leanstral 1.5",
 };
 import { withDocumentContext } from "../service/External/pdfService.js";
 

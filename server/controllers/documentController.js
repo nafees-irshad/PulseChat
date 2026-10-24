@@ -45,6 +45,150 @@ export function handleUpload(req, res, next) {
   });
 }
 
+export async function listDocuments(req, res) {
+  try {
+    const documents = await Document.findAll({
+      where: { userId: req.user.id },
+      attributes: [
+        "id",
+        "originalName",
+        "originalFile",
+        "totalPages",
+        "conversationId",
+        "createdAt",
+        "updatedAt",
+      ],
+      include: [
+        { model: db.User, attributes: ["name"] },
+        { model: db.Conversation, attributes: ["title"] },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.status(200).json(
+      documents.map((document) => ({
+        id: document.id,
+        originalName: document.originalName,
+        totalPages: document.totalPages,
+        conversationId: document.conversationId,
+        createdAt: document.createdAt,
+        updatedAt: document.updatedAt,
+        sizeBytes: document.originalFile
+          ? Buffer.from(document.originalFile).length
+          : 0,
+        uploaderName: document.User?.name || "Unknown",
+        conversationName: document.Conversation?.title || "No chat",
+      })),
+    );
+  } catch (err) {
+    console.error("listDocuments error:", err);
+    return res.status(500).json({ error: "Failed to fetch documents" });
+  }
+}
+
+export async function getDocument(req, res) {
+  try {
+    const document = await Document.findOne({
+      where: { id: req.params.id, userId: req.user.id },
+      attributes: [
+        "id",
+        "originalName",
+        "text",
+        "originalFile",
+        "totalPages",
+        "conversationId",
+        "createdAt",
+      ],
+      include: [
+        { model: db.User, attributes: ["name"] },
+        { model: db.Conversation, attributes: ["title"] },
+      ],
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: "Document not found" });
+    }
+
+    return res.status(200).json({
+      id: document.id,
+      originalName: document.originalName,
+      text: document.text,
+      originalFileBase64: document.originalFile
+        ? Buffer.from(document.originalFile).toString("base64")
+        : null,
+      totalPages: document.totalPages,
+      conversationId: document.conversationId,
+      createdAt: document.createdAt,
+      uploaderName: document.User?.name || "Unknown",
+      conversationName: document.Conversation?.title || "No chat",
+    });
+  } catch (err) {
+    console.error("getDocument error:", err);
+    return res.status(500).json({ error: "Failed to fetch document" });
+  }
+}
+
+export async function getDocumentFile(req, res) {
+  try {
+    const document = await Document.findOne({
+      where: { id: req.params.id, userId: req.user.id },
+      attributes: ["originalName", "originalFile"],
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: "Document not found" });
+    }
+    if (!document.originalFile) {
+      return res.status(404).json({ error: "Original file is not available" });
+    }
+
+    const extension = document.originalName.split(".").pop()?.toLowerCase();
+    const contentTypes = {
+      pdf: "application/pdf",
+      txt: "text/plain; charset=utf-8",
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      docx:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    };
+    const contentType = contentTypes[extension];
+    if (!contentType) {
+      return res.status(415).json({ error: "Preview is not available for this file type" });
+    }
+
+    const fileBuffer = Buffer.isBuffer(document.originalFile)
+      ? document.originalFile
+      : Buffer.from(document.originalFile);
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Length", fileBuffer.length);
+    res.setHeader("Content-Disposition", "inline");
+    res.setHeader("Cache-Control", "private, max-age=300");
+    return res.status(200).send(fileBuffer);
+  } catch (err) {
+    console.error("getDocumentFile error:", err);
+    return res.status(500).json({ error: "Failed to fetch original file" });
+  }
+}
+
+export async function deleteDocument(req, res) {
+  try {
+    const document = await Document.findOne({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: "Document not found" });
+    }
+
+    await document.destroy();
+    return res.status(204).send();
+  } catch (err) {
+    console.error("deleteDocument error:", err);
+    return res.status(500).json({ error: "Failed to delete document" });
+  }
+}
+
 // POST /api/documents  (form-data: file, optional conversationId)
 export async function uploadDocument(req, res) {
   if (!req.file) {
@@ -79,6 +223,7 @@ export async function uploadDocument(req, res) {
       conversationId: req.body.conversationId || null,
       originalName: req.file.originalname,
       text: result.text,
+      originalFile: req.file.buffer,
       totalPages: result.totalPages,
     });
 

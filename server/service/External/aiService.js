@@ -2,8 +2,9 @@ import * as groq from "./groqService.js";
 import * as glm from "./openRouterService.DotsStudio.js";
 import * as apodex from "./apodex-1.1-mini.js";
 import * as nemotron from "./nemotron-3-super-120b-a12b.js";
+import * as leanstral from "./leanstral-1-5.js";
 
-const providers = { groq, glm, apodex, nemotron };
+const providers = { groq, glm, apodex, nemotron, leanstral };
 
 export const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "groq";
 const FIRST_CHUNK_TIMEOUT_MS = 15000; // give up on a model that sends nothing for 15s

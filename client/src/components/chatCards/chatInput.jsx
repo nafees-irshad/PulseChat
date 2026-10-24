@@ -21,6 +21,7 @@ const models = [
   { id: "glm", name: "Dots 3 Note Preview", provider: "OpenRouter" },
   { id: "apodex", name: "Apodex 1.1 Mini", provider: "OpenRouter" },
   { id: "nemotron", name: "Nemotron 3 Super 120B", provider: "Requesty" },
+  { id: "leanstral", name: "Leanstral 1.5", provider: "Requesty" },
 ];
 
 function ChatInput({
@@ -38,6 +39,10 @@ function ChatInput({
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileError, setFileError] = useState("");
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const [modelMenuLayout, setModelMenuLayout] = useState({
+    placement: "above",
+    maxHeight: 390,
+  });
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const modelMenuRef = useRef(null);
@@ -102,6 +107,35 @@ function ChatInput({
     return () => {
       document.removeEventListener("pointerdown", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isModelMenuOpen]);
+
+  useLayoutEffect(() => {
+    if (!isModelMenuOpen) return undefined;
+
+    const updateMenuLayout = () => {
+      const button = modelButtonRef.current;
+      if (!button) return;
+
+      const bounds = button.getBoundingClientRect();
+      const spaceAbove = Math.max(0, bounds.top - 8);
+      const spaceBelow = Math.max(0, window.innerHeight - bounds.bottom - 8);
+      const placement =
+        spaceAbove >= 280 || spaceAbove >= spaceBelow ? "above" : "below";
+      const availableSpace = placement === "above" ? spaceAbove : spaceBelow;
+
+      setModelMenuLayout({
+        placement,
+        maxHeight: Math.min(390, availableSpace),
+      });
+    };
+
+    updateMenuLayout();
+    window.addEventListener("resize", updateMenuLayout);
+    window.addEventListener("scroll", updateMenuLayout, true);
+    return () => {
+      window.removeEventListener("resize", updateMenuLayout);
+      window.removeEventListener("scroll", updateMenuLayout, true);
     };
   }, [isModelMenuOpen]);
 
@@ -175,7 +209,7 @@ function ChatInput({
           compact
             ? "relative min-h-[112px] max-w-[840px] flex-col rounded-[26px] px-5 pt-4 pb-2.5 shadow-lg"
             : "max-w-[760px] flex-col rounded-[26px] px-4 pt-3.5 pb-2.5 shadow-xs"
-        } border border-neutral-300/80 bg-[#f4f4f4] transition-colors duration-150 focus-within:border-neutral-400 focus-within:shadow-md dark:border-neutral-700/60 dark:bg-[#202123] dark:focus-within:border-neutral-500`}
+        } border border-neutral-300/80 bg-[#f4f4f4] transition-colors duration-150 focus-within:border-neutral-400 focus-within:shadow-md dark:border-white/10 dark:bg-[#212121] dark:focus-within:border-neutral-500`}
       >
         <label className="sr-only" htmlFor="chat-prompt-textarea">
           Ask PulseAI
@@ -275,45 +309,52 @@ function ChatInput({
                   id="chat-model-menu"
                   role="group"
                   aria-label="Choose an AI model"
-                  className="absolute bottom-full right-0 z-30 mb-2 w-64 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-1.5 shadow-xl shadow-black/10 dark:border-neutral-700 dark:bg-[#252525] dark:shadow-black/40"
+                  style={{ maxHeight: `${modelMenuLayout.maxHeight}px` }}
+                  className={`absolute right-0 z-30 flex w-64 flex-col overflow-hidden rounded-[24px] border border-neutral-200 bg-white p-1.5 shadow-xl shadow-black/10 dark:border-neutral-700 dark:bg-[#252525] dark:shadow-black/40 ${
+                    modelMenuLayout.placement === "above"
+                      ? "bottom-full mb-2"
+                      : "top-full mt-2"
+                  }`}
                 >
-                  <p className="px-2.5 pt-1.5 pb-2 text-[11px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-neutral-500">
+                  <p className="shrink-0 px-2.5 pt-1.5 pb-2 text-[11px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-neutral-500">
                     Choose a model
                   </p>
-                  {models.map((option) => {
-                    const isSelected = option.id === model;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        aria-pressed={isSelected}
-                        onClick={() => {
-                          onModelChange?.(option.id);
-                          setIsModelMenuOpen(false);
-                        }}
-                        className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-2.5 py-2 text-left transition ${
-                          isSelected
-                            ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-700/70 dark:text-white"
-                            : "text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-white/5"
-                        }`}
-                      >
-                        <span className="flex min-w-0 flex-col">
-                          <span className="text-[13px] font-medium">
-                            {option.name}
+                  <div className="min-h-0 overflow-y-auto">
+                    {models.map((option) => {
+                      const isSelected = option.id === model;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => {
+                            onModelChange?.(option.id);
+                            setIsModelMenuOpen(false);
+                          }}
+                          className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-2.5 py-2 text-left transition ${
+                            isSelected
+                              ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-700/70 dark:text-white"
+                              : "text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <span className="flex min-w-0 flex-col">
+                            <span className="text-[13px] font-medium">
+                              {option.name}
+                            </span>
+                            <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                              {option.provider}
+                            </span>
                           </span>
-                          <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                            {option.provider}
-                          </span>
-                        </span>
-                        {isSelected && (
-                          <Check
-                            aria-hidden="true"
-                            className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
+                          {isSelected && (
+                            <Check
+                              aria-hidden="true"
+                              className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>

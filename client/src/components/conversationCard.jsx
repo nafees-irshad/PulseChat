@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { listDocuments } from "../api/documentApi.js";
 import UserMenu from "./userMenu.jsx";
 
 function ConversationCard({
@@ -36,6 +37,31 @@ function ConversationCard({
   const [renameTitle, setRenameTitle] = useState("");
   const [renameError, setRenameError] = useState("");
   const [isSavingRename, setIsSavingRename] = useState(false);
+  const [libraryDocumentCount, setLibraryDocumentCount] = useState(null);
+
+  useEffect(() => {
+    let isActive = true;
+    const updateDocumentCount = async () => {
+      try {
+        const documents = await listDocuments();
+        if (isActive) {
+          setLibraryDocumentCount(Array.isArray(documents) ? documents.length : 0);
+        }
+      } catch (error) {
+        console.error("Could not load library document count:", error);
+      }
+    };
+
+    updateDocumentCount();
+    window.addEventListener("pulsechat:documents-updated", updateDocumentCount);
+    return () => {
+      isActive = false;
+      window.removeEventListener(
+        "pulsechat:documents-updated",
+        updateDocumentCount,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     if (openMenuId === null && !renameTarget) return undefined;
@@ -202,21 +228,20 @@ function ConversationCard({
         </button>
 
         {/* Library */}
-        <button
-          type="button"
-          onClick={() => {}}
+        <Link
+          to="/library"
           className="flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-left text-[14px] font-normal text-[#0d0d0d] transition hover:bg-black/5 dark:text-[#ececec] dark:hover:bg-white/5"
         >
           <div className="flex items-center gap-3">
             <Library className="h-[18px] w-[18px] shrink-0 text-neutral-700 dark:text-neutral-300" />
             <span>Library</span>
           </div>
-          {conversations.length > 0 && (
-            <span className="pr-1 text-[12.5px] font-normal text-neutral-400 dark:text-neutral-500">
-              {conversations.length}
+          {libraryDocumentCount !== null && (
+            <span className="text-[13px] text-neutral-500 dark:text-neutral-400">
+              {libraryDocumentCount}
             </span>
           )}
-        </button>
+        </Link>
       </div>
 
       {/* "Recents" Section Header */}

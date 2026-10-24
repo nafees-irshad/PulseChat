@@ -12,7 +12,11 @@ import {
 } from "../controllers/chatController.js";
 import {
   extractGuestDocument,
+  deleteDocument,
+  getDocument,
+  getDocumentFile,
   handleUpload,
+  listDocuments,
   uploadDocument,
 } from "../controllers/documentController.js";
 
@@ -50,6 +54,10 @@ router.get("/conversations", listConversations);
 router.patch("/conversations/:id", renameConversation);
 router.delete("/conversations/:id", deleteConversation);
 router.get("/conversations/:id/messages", getConversationMessages);
+router.get("/documents", listDocuments);
+router.delete("/documents/:id", deleteDocument);
+router.get("/documents/:id", getDocument);
+router.get("/documents/:id/file", getDocumentFile);
 router.post("/chat", sendMessage);
 router.post("/documents/extract", handleUpload, uploadDocument);
 

@@ -25,6 +25,10 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
+      originalFile: {
+        type: DataTypes.BLOB("long"),
+        allowNull: true,
+      },
       totalPages: {
         type: DataTypes.INTEGER,
         allowNull: true,

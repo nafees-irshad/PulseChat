@@ -9,6 +9,7 @@ import ProfilePage from "./pages/users/profile.jsx";
 import SignupPage from "./pages/users/signup.jsx";
 import AppearancePage from "./pages/users/appearance.jsx";
 import StartChat from "./pages/startChat.jsx";
+import DocumentPage from "./pages/documentPage.jsx";
 
 function App() {
   return (
@@ -20,6 +21,14 @@ function App() {
         >
           {/* Keep the chat page mounted while switching between home and a conversation. */}
           <Route path="chat" />
+          <Route
+            path="chat/document/:documentId/:conversationId?"
+            element={
+              <ProtectedRoute>
+                <></>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="chat/:conversationId"
             element={
@@ -42,6 +51,22 @@ function App() {
           element={
             <ProtectedRoute>
               <AppearancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/library"
+          element={
+            <ProtectedRoute>
+              <DocumentPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/library/:documentId"
+          element={
+            <ProtectedRoute>
+              <DocumentPage />
             </ProtectedRoute>
           }
         />

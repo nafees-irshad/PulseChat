@@ -10,7 +10,19 @@ import {
   startGuestMessage,
   startMessage,
 } from "../api/conversationApi.js";
-import { Code, Lightbulb, PanelLeft, Sparkles, Table } from "lucide-react";
+import {
+  ChevronDown,
+  Code,
+  Download,
+  FileText,
+  Info,
+  Lightbulb,
+  LoaderCircle,
+  PanelLeft,
+  Sparkles,
+  Table,
+  X,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   ChatInput,
@@ -20,6 +32,7 @@ import {
 import ConversationCard from "../components/conversationCard.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { useConversation } from "../context/useConversation.js";
+import { getDocument, getDocumentFile } from "../api/documentApi.js";
 
 const SUGGESTION_PROMPTS = [
   {
@@ -63,7 +76,10 @@ function upsertMessage(messages, messageId, update, initialMessage) {
 
 function StartChat() {
   const { isAuthenticated } = useAuth();
-  const { conversationId: routeConversationId } = useParams();
+  const {
+    conversationId: routeConversationId,
+    documentId: routeDocumentId,
+  } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const {
@@ -85,6 +101,11 @@ function StartChat() {
   const [pendingAssistantId, setPendingAssistantId] = useState(null);
   const [model, setModel] = useState("groq");
   const [error, setError] = useState("");
+  const [documentDetails, setDocumentDetails] = useState(null);
+  const [documentLoadError, setDocumentLoadError] = useState("");
+  const [isDocumentMenuOpen, setIsDocumentMenuOpen] = useState(false);
+  const [isDocumentInfoOpen, setIsDocumentInfoOpen] = useState(false);
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(
     () =>
       typeof window === "undefined" ||
@@ -99,6 +120,11 @@ function StartChat() {
   const isLoadingMessages =
     Boolean(routeConversationId) &&
     loadedConversationId !== routeConversationId;
+  const selectedLibraryDocument =
+    routeDocumentId &&
+    String(documentDetails?.id) === routeDocumentId
+      ? documentDetails
+      : null;
   const refreshConversations = useCallback(async () => {
     if (!isAuthenticated) return [];
 
@@ -116,6 +142,31 @@ function StartChat() {
       setIsLoadingConversations(false);
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!routeDocumentId) return undefined;
+    let isActive = true;
+
+    getDocument(routeDocumentId)
+      .then((document) => {
+        if (isActive) {
+          setDocumentDetails(document);
+          setDocumentLoadError("");
+        }
+      })
+      .catch((requestError) => {
+        if (isActive) {
+          setDocumentLoadError(
+            requestError.response?.data?.error ||
+              "Could not load the selected document.",
+          );
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [routeDocumentId]);
 
   useEffect(() => {
     if (!isAuthenticated) return undefined;
@@ -252,7 +303,7 @@ function StartChat() {
   }
 
   const sendPrompt = useCallback(
-    async (rawPrompt, attachedFile = null) => {
+    async (rawPrompt, attachedFile = null, selectedDocumentId = null) => {
       const prompt = rawPrompt.trim();
       if (!prompt || isSending) return;
       if (isAuthenticated && routeConversationId && isLoadingConversations) return;
@@ -317,7 +368,7 @@ function StartChat() {
           selectConversation(conversation);
         }
 
-        let documentId;
+        let documentId = selectedDocumentId || routeDocumentId;
         if (attachedFile?.size > 0) {
           if (!isAuthenticated) guestDocumentTextRef.current = "";
           const onUploadProgress = (uploadProgress) => {
@@ -344,6 +395,7 @@ function StartChat() {
                 "The document service did not return a document ID.",
               );
             }
+            window.dispatchEvent(new Event("pulsechat:documents-updated"));
           } else {
             const extractedDocument = await extractGuestDocument(
               attachedFile,
@@ -469,7 +521,12 @@ function StartChat() {
         if (createdConversationId) {
           locallyCompletedConversationIdRef.current = createdConversationId;
           setLoadedConversationId(createdConversationId);
-          navigate(`/chat/${createdConversationId}`, { replace: true });
+          navigate(
+            routeDocumentId
+              ? `/chat/document/${routeDocumentId}/${createdConversationId}`
+              : `/chat/${createdConversationId}`,
+            { replace: true },
+          );
         } else if (isAuthenticated) {
           await refreshConversations();
         }
@@ -513,6 +570,7 @@ function StartChat() {
       navigate,
       refreshConversations,
       routeConversationId,
+      routeDocumentId,
       selectConversation,
       startConversation,
     ],
@@ -524,19 +582,49 @@ function StartChat() {
 
   useEffect(() => {
     const initialMessage = location.state?.initialMessage;
+    const selectedDocumentId = location.state?.documentId;
     if (!initialMessage || initialPromptHandled.current) return;
 
     initialPromptHandled.current = true;
     navigate(location.pathname, { replace: true, state: null });
-    sendPromptRef.current?.(initialMessage);
+    sendPromptRef.current?.(initialMessage, null, selectedDocumentId);
   }, [location.key, location.pathname, location.state, navigate]);
+
+  async function handleDownloadSelectedDocument() {
+    if (!selectedLibraryDocument || isDownloadingDocument) return;
+    setIsDownloadingDocument(true);
+    try {
+      const file = await getDocumentFile(selectedLibraryDocument.id);
+      const url = URL.createObjectURL(
+        file instanceof Blob ? file : new Blob([file]),
+      );
+      const downloadLink = window.document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = selectedLibraryDocument.originalName;
+      downloadLink.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.error ||
+          "Could not download the selected document.",
+      );
+    } finally {
+      setIsDownloadingDocument(false);
+    }
+  }
+
+  function closeSelectedDocument() {
+    setIsDocumentMenuOpen(false);
+    setIsDocumentInfoOpen(false);
+    navigate("/");
+  }
 
   return (
     <main
       className={`relative flex h-svh w-full overflow-hidden ${
         isAuthenticated
-          ? "bg-[#f1f1f2] dark:bg-[#101012]"
-          : "bg-white dark:bg-[#212121]"
+          ? "bg-[#f1f1f2] dark:bg-black"
+          : "bg-white dark:bg-black"
       }`}
     >
       {/* Overlay backdrop — closes sidebar on mobile when tapped */}
@@ -583,10 +671,151 @@ function StartChat() {
 
       {/* Conversation fills the remaining space without a framed panel. */}
       <section
-        className={`relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white dark:bg-[#212121] ${
+        className={`relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white dark:bg-black ${
           isSidebarOpen ? "z-0" : "z-40"
         }`}
       >
+        {routeDocumentId && (
+          <header className="relative z-20 flex h-[68px] shrink-0 items-center justify-between gap-3 border-b border-neutral-200/70 px-4 dark:border-neutral-800">
+            <div className="relative min-w-0">
+              <button
+                type="button"
+                onClick={() => setIsDocumentMenuOpen((open) => !open)}
+                disabled={!selectedLibraryDocument}
+                aria-expanded={isDocumentMenuOpen}
+                className="flex h-11 max-w-[min(70vw,460px)] items-center gap-2.5 rounded-full bg-neutral-100 px-4 text-left text-[14px] font-medium text-neutral-800 transition hover:bg-neutral-200 disabled:opacity-60 dark:bg-[#303030] dark:text-neutral-100 dark:hover:bg-[#393939]"
+              >
+                <FileText className="h-[18px] w-[18px] shrink-0 text-neutral-500 dark:text-neutral-400" />
+                <span className="truncate">
+                  {selectedLibraryDocument?.originalName ||
+                    (documentLoadError ? "Document unavailable" : "Loading document…")}
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-neutral-500" />
+              </button>
+              {documentLoadError && (
+                <p role="alert" className="absolute top-12 left-4 text-xs text-red-600">
+                  {documentLoadError}
+                </p>
+              )}
+              {isDocumentMenuOpen && selectedLibraryDocument && (
+                <div className="absolute top-[calc(100%+8px)] left-0 z-50 w-[min(360px,calc(100vw-32px))] rounded-2xl border border-neutral-200 bg-white p-3 text-left shadow-2xl dark:border-neutral-700 dark:bg-[#303030]">
+                  <div className="flex min-w-0 items-start gap-3 px-2 py-2">
+                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-neutral-500" />
+                    <div className="flex min-w-0 flex-col">
+                      <strong className="truncate text-[14px] font-semibold text-neutral-900 dark:text-white">
+                        {selectedLibraryDocument.originalName}
+                      </strong>
+                      <span className="text-[13px] text-neutral-500 dark:text-neutral-400">
+                        Library
+                      </span>
+                    </div>
+                  </div>
+                  <div className="my-2 border-t border-neutral-200 dark:border-neutral-600" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDocumentMenuOpen(false);
+                      navigate(`/library/${selectedLibraryDocument.id}`);
+                    }}
+                    className="flex min-h-10 w-full items-center gap-3 rounded-lg px-2 text-left text-[14px] text-neutral-800 hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-white/10"
+                  >
+                    <FileText className="h-5 w-5 text-neutral-500" />
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDocumentMenuOpen(false);
+                      setIsDocumentInfoOpen(true);
+                    }}
+                    className="flex min-h-10 w-full items-center gap-3 rounded-lg px-2 text-left text-[14px] text-neutral-800 hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-white/10"
+                  >
+                    <Info className="h-5 w-5 text-neutral-500" />
+                    File info
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadSelectedDocument}
+                disabled={!selectedLibraryDocument || isDownloadingDocument}
+                aria-label="Download document"
+                title="Download"
+                className="grid h-10 w-10 place-items-center rounded-full bg-neutral-100 text-neutral-700 transition hover:bg-neutral-200 disabled:opacity-50 dark:bg-[#303030] dark:text-neutral-200 dark:hover:bg-[#393939]"
+              >
+                {isDownloadingDocument ? (
+                  <LoaderCircle className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Download className="h-5 w-5" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={closeSelectedDocument}
+                aria-label="Close document"
+                title="Close"
+                className="grid h-10 w-10 place-items-center rounded-full bg-neutral-100 text-neutral-700 transition hover:bg-neutral-200 dark:bg-[#303030] dark:text-neutral-200 dark:hover:bg-[#393939]"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </header>
+        )}
+
+        {isDocumentInfoOpen && selectedLibraryDocument && (
+          <div
+            className="fixed inset-0 z-[70] grid place-items-center bg-black/50 p-4"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setIsDocumentInfoOpen(false);
+              }
+            }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="chat-document-info-title"
+              className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-5 text-left shadow-2xl dark:border-neutral-700 dark:bg-[#252525]"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h2 id="chat-document-info-title" className="m-0 text-lg font-semibold text-neutral-900 dark:text-white">
+                  File info
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setIsDocumentInfoOpen(false)}
+                  aria-label="Close file info"
+                  className="grid h-8 w-8 place-items-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <dl className="space-y-3 text-[13px]">
+                <div className="grid grid-cols-[110px_1fr] gap-3">
+                  <dt className="text-neutral-500">Uploader</dt>
+                  <dd className="m-0 text-neutral-900 dark:text-neutral-100">{selectedLibraryDocument.uploaderName || "Unknown"}</dd>
+                </div>
+                <div className="grid grid-cols-[110px_1fr] gap-3">
+                  <dt className="text-neutral-500">Created at</dt>
+                  <dd className="m-0 text-neutral-900 dark:text-neutral-100">{selectedLibraryDocument.createdAt ? new Date(selectedLibraryDocument.createdAt).toLocaleString() : "Unknown"}</dd>
+                </div>
+                <div className="grid grid-cols-[110px_1fr] gap-3">
+                  <dt className="text-neutral-500">Type</dt>
+                  <dd className="m-0 text-neutral-900 dark:text-neutral-100">{selectedLibraryDocument.originalName.split(".").pop()?.toUpperCase() || "Unknown"}</dd>
+                </div>
+                <div className="grid grid-cols-[110px_1fr] gap-3">
+                  <dt className="text-neutral-500">Recent chat</dt>
+                  <dd className="m-0 text-neutral-900 dark:text-neutral-100">{selectedLibraryDocument.conversationName || "No chat"}</dd>
+                </div>
+              </dl>
+            </section>
+          </div>
+        )}
+
         {!isAuthenticated && (
           <header className="absolute inset-x-0 top-0 z-20 flex h-[68px] items-center justify-between gap-2 px-5 sm:px-8">
             <button
@@ -634,10 +863,29 @@ function StartChat() {
           </button>
         )}
 
-        {messages.length === 0 ? (
+        {routeDocumentId && messages.length === 0 ? (
+          <div className="flex min-h-0 flex-1 flex-col justify-end px-4 pb-6 pt-20 sm:px-6">
+            <div className="mx-auto w-full max-w-[760px]">
+              <ChatInput
+                key={routeDocumentId}
+                onSend={sendPrompt}
+                model={model}
+                onModelChange={setModel}
+                isSending={isSending}
+                error={error}
+                placeholder="Ask about this file"
+                disabled={
+                  !selectedLibraryDocument ||
+                  Boolean(documentLoadError) ||
+                  isSending
+                }
+              />
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
           <div
             className={`flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-10 ${
-              isAuthenticated ? "" : "pt-12"
+              isAuthenticated ? "" : "pt-20"
             }`}
           >
             <h1
@@ -655,10 +903,11 @@ function StartChat() {
               }`}
             >
               <ChatInput
-                key={routeConversationId || "new"}
+                key={routeDocumentId || routeConversationId || "new"}
                 onSend={sendPrompt}
                 maxLength={isAuthenticated ? undefined : 9000}
                 compact={!isAuthenticated}
+                placeholder={routeDocumentId ? "Ask about this file" : undefined}
                 model={model}
                 onModelChange={setModel}
                 isSending={isSending}
@@ -676,7 +925,7 @@ function StartChat() {
                       key={item.label}
                       type="button"
                       onClick={() => sendPrompt(item.prompt)}
-                      className="inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-white/80 px-3.5 py-1.5 text-[12.5px] font-medium text-neutral-600 shadow-2xs transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-[#202024] dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-[#2a2a30] dark:hover:text-white"
+                      className="inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-white/80 px-3.5 py-1.5 text-[12.5px] font-medium text-neutral-600 shadow-2xs transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-[#181818] dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-[#212121] dark:hover:text-white"
                     >
                       <item.icon className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500" />
                       <span>{item.label}</span>
@@ -711,9 +960,10 @@ function StartChat() {
             />
 
             <ChatInput
-              key={routeConversationId || "new"}
+              key={routeDocumentId || routeConversationId || "new"}
               onSend={sendPrompt}
               maxLength={isAuthenticated ? undefined : 9000}
+              placeholder={routeDocumentId ? "Ask about this file" : undefined}
               model={model}
               onModelChange={setModel}
               isSending={isSending}
@@ -729,7 +979,7 @@ function StartChat() {
         {/* Floating Help Circle at bottom right */}
         {isAuthenticated && <button
           type="button"
-          className="absolute right-4 bottom-4 z-10 grid h-7 w-7 place-items-center rounded-full border border-neutral-300/80 bg-white text-[13px] font-medium text-neutral-600 shadow-2xs transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-[#2a2a2a] dark:text-neutral-300 dark:hover:bg-[#333]"
+          className="absolute right-4 bottom-4 z-10 grid h-7 w-7 place-items-center rounded-full border border-neutral-300/80 bg-white text-[13px] font-medium text-neutral-600 shadow-2xs transition hover:bg-neutral-50 dark:border-neutral-800 dark:bg-[#181818] dark:text-neutral-400 dark:hover:bg-[#252525] dark:hover:text-white"
           aria-label="Help"
           title="Help"
         >

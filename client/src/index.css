@@ -140,31 +140,19 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  color: #e5e7eb;
-  background: #141519;
-  --text: #a1a1aa;
+  color: #ececec;
+  background: #000000;
+  --text: #b4b4b4;
   --text-h: #f4f4f5;
-  --bg: #141519;
-  --border: #373940;
-  --code-bg: #24262c;
+  --bg: #000000;
+  --border: #212121;
+  --code-bg: #171717;
 }
 
 :root[data-theme="dark"] body,
 :root[data-theme="dark"] #root {
-  color: #e5e7eb;
-  background-color: #141519;
-}
-
-:root[data-theme="dark"] #root .bg-white {
-  background-color: #191a1f !important;
-}
-
-:root[data-theme="dark"] #root [class*="bg-[#f"] {
-  background-color: #24262c !important;
-}
-
-:root[data-theme="dark"] #root [class*="bg-[#e"] {
-  background-color: #2b2d33 !important;
+  color: #ececec;
+  background-color: #000000;
 }
 
 :root[data-theme="dark"] #root [class*="text-[#171717]"],
@@ -172,20 +160,26 @@
 :root[data-theme="dark"] #root [class*="text-[#242424]"],
 :root[data-theme="dark"] #root [class*="text-[#222]"],
 :root[data-theme="dark"] #root [class*="text-[#333]"],
-:root[data-theme="dark"] #root [class*="text-[#444]"],
+:root[data-theme="dark"] #root [class*="text-[#444]"] {
+  color: #ececec !important;
+}
+
 :root[data-theme="dark"] #root [class*="text-[#555]"],
 :root[data-theme="dark"] #root [class*="text-[#666]"],
-:root[data-theme="dark"] #root [class*="text-[#777]"],
+:root[data-theme="dark"] #root [class*="text-[#777]"] {
+  color: #b4b4b4 !important;
+}
+
 :root[data-theme="dark"] #root [class*="text-[#888]"],
 :root[data-theme="dark"] #root [class*="text-[#999]"] {
-  color: #e5e7eb !important;
+  color: #8e8e8e !important;
 }
 
 :root[data-theme="dark"] #root [class*="border-[#e"],
 :root[data-theme="dark"] #root [class*="border-[#d"],
 :root[data-theme="dark"] #root [class~="border-t"],
 :root[data-theme="dark"] #root [class~="border-r"] {
-  border-color: #373940 !important;
+  border-color: #212121 !important;
 }
 
 :root[data-theme="dark"] #root input,
@@ -196,7 +190,7 @@
 
 :root[data-theme="dark"] #root input::placeholder,
 :root[data-theme="dark"] #root textarea::placeholder {
-  color: #a1a1aa;
+  color: #8e8e8e;
 }
 
 textarea::-webkit-scrollbar {
@@ -259,17 +253,8 @@ textarea {
   min-height: 24px;
 }
 
-:root[data-theme="dark"] #root .bg-black {
-  color: #171717 !important;
-  background-color: #e5e7eb !important;
-}
-
-:root[data-theme="dark"] #root .bg-black.text-white {
-  color: #171717 !important;
-}
-
 :root[data-theme="dark"] #root .workspace-panel {
-  background-color: #000 !important;
+  background-color: #000000 !important;
 }
 
 /* ==========================================================================
@@ -367,15 +352,15 @@ textarea {
 
 /* Dark Mode Overrides: PulseAI dark rounded code container */
 :root[data-theme="dark"] .code-block-container {
-  background-color: #2f2f2f !important;
-  border: none !important;
+  background-color: #171717 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: none !important;
-  border-radius: 20px !important;
+  border-radius: 16px !important;
 }
 
 :root[data-theme="dark"] .code-block-header {
-  background-color: transparent !important;
-  border-bottom: none !important;
+  background-color: #212121 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
   color: #ffffff !important;
 }
 
